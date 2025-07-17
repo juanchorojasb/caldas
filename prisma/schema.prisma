@@ -1,0 +1,210 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "mysql"  // ← CAMBIADO de mysql a postgresql
+  url      = env("DATABASE_URL")
+}
+
+// ==================== NEXTAUTH.JS TABLES ====================
+model Account {
+  id                String  @id @default(cuid())
+  userId            String  @map("user_id")
+  type              String
+  provider          String
+  providerAccountId String  @map("provider_account_id")
+  refresh_token     String?
+  access_token      String?
+  expires_at        Int?
+  token_type        String?
+  scope             String?
+  id_token          String?
+  session_state     String?
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([provider, providerAccountId])
+  @@map("accounts")
+}
+
+model Session {
+  id           String   @id @default(cuid())
+  sessionToken String   @unique @map("session_token")
+  userId       String   @map("user_id")
+  expires      DateTime
+  user         User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@map("sessions")
+}
+
+model VerificationToken {
+  identifier String
+  token      String
+  expires    DateTime
+
+  @@unique([identifier, token])
+  @@map("verificationtokens")
+}
+
+// ==================== MERCADO LOCAL TABLES ====================
+
+model User {
+  id            String    @id @default(cuid())
+  email         String    @unique
+  emailVerified DateTime? @map("email_verified")
+  password      String?   // Para registro con email/password
+  
+  // Información personal
+  firstName     String    @map("first_name")
+  lastName      String    @map("last_name")
+  phone         String?
+  image         String?
+  
+  // Información empresarial específica de Caldas
+  municipality  Municipality
+  businessStage BusinessStage @map("business_stage")
+  businessName  String?       @map("business_name")
+  businessType  String?       @map("business_type") // Usado temporalmente para JSON data
+  
+  // Nuevos campos para descripción del negocio
+  businessDescription String? @map("business_description")
+  
+  // Nuevos campos para redes sociales y presencia digital
+  website       String? @map("website")
+  instagram     String? @map("instagram")
+  facebook      String? @map("facebook")
+  whatsapp      String? @map("whatsapp")
+  
+  // Configuración de cuenta
+  role          UserRole      @default(STUDENT)
+  isActive      Boolean       @default(true) @map("is_active")
+  acceptedTerms Boolean       @default(false) @map("accepted_terms")
+  
+  // Timestamps
+  createdAt     DateTime      @default(now()) @map("created_at")
+  updatedAt     DateTime      @updatedAt @map("updated_at")
+  lastLoginAt   DateTime?     @map("last_login_at")
+
+  // Relations
+  accounts      Account[]
+  sessions      Session[]
+  enrollments   Enrollment[]
+  
+  @@map("users")
+}
+
+model Course {
+  id          String      @id @default(cuid())
+  title       String
+  description String?
+  category    CourseCategory
+  stage       BusinessStage? // A qué etapa está dirigido (null = todas)
+  
+  // Content
+  thumbnail   String?
+  duration    Int?        // Duración en minutos
+  isLive      Boolean     @default(false) @map("is_live")
+  liveDate    DateTime?   @map("live_date")
+  
+  // Instructor
+  instructorName String   @map("instructor_name")
+  instructorBio  String?  @map("instructor_bio")
+  
+  // Status
+  isPublished Boolean    @default(false) @map("is_published")
+  isActive    Boolean    @default(true) @map("is_active")
+  
+  // Timestamps
+  createdAt   DateTime   @default(now()) @map("created_at")
+  updatedAt   DateTime   @updatedAt @map("updated_at")
+  
+  // Relations
+  enrollments Enrollment[]
+  videos      Video[]
+  
+  @@map("courses")
+}
+
+model Video {
+  id          String   @id @default(cuid())
+  courseId    String   @map("course_id")
+  
+  title       String
+  description String?
+  videoUrl    String   @map("video_url")
+  duration    Int?     // Duración en segundos
+  orderIndex  Int      @map("order_index") // Orden dentro del curso
+  
+  // Video settings
+  isPublished Boolean  @default(false) @map("is_published")
+  isLive      Boolean  @default(false) @map("is_live")
+  liveDate    DateTime? @map("live_date")
+  
+  // Timestamps
+  createdAt   DateTime @default(now()) @map("created_at")
+  updatedAt   DateTime @updatedAt @map("updated_at")
+  
+  // Relations
+  course      Course   @relation(fields: [courseId], references: [id], onDelete: Cascade)
+  
+  @@map("videos")
+}
+
+model Enrollment {
+  id           String    @id @default(cuid())
+  userId       String    @map("user_id")
+  courseId     String    @map("course_id")
+  
+  // Progress tracking
+  progress     Int       @default(0) // 0-100
+  isCompleted  Boolean   @default(false) @map("is_completed")
+  completedAt  DateTime? @map("completed_at")
+  
+  // Timestamps
+  enrolledAt   DateTime  @default(now()) @map("enrolled_at")
+  updatedAt    DateTime  @updatedAt @map("updated_at")
+  
+  // Relations
+  user         User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  course       Course    @relation(fields: [courseId], references: [id], onDelete: Cascade)
+  
+  @@unique([userId, courseId])
+  @@map("enrollments")
+}
+
+// ==================== ENUMS ====================
+
+enum UserRole {
+  ADMIN
+  INSTRUCTOR
+  STUDENT
+}
+
+enum Municipality {
+  // Municipios participantes del proyecto (5 municipios de Caldas)
+  NEIRA
+  ARANZAZU
+  PACORA
+  SALAMINA
+  AGUADAS
+}
+
+enum BusinessStage {
+  PRE_SEMILLA     // Ideas y conceptos iniciales
+  SEMILLA         // Plan de negocios y prototipos
+  TEMPRANA        // Primeros clientes y ventas
+  CRECIMIENTO     // Escalando el negocio
+  CONSOLIDACION   // Empresa establecida
+}
+
+enum CourseCategory {
+  EMPRESARIAL     // Formación empresarial
+  HUMANA          // Habilidades blandas/emocionales
+  TECNICA         // Habilidades técnicas específicas
+  MARKETING       // Marketing y ventas
+  FINANZAS        // Finanzas y contabilidad
+}

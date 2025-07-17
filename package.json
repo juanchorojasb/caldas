@@ -1,0 +1,79 @@
+{
+  "name": "mercado-local-caldas",
+  "version": "1.0.0",
+  "private": true,
+  "description": "Plataforma de formación empresarial - Mercado Local Caldas",
+  "scripts": {
+    "dev": "next dev",
+    "build": "next build",
+    "start": "next start",
+    "lint": "next lint",
+    
+    "setup": "node scripts/setup.js",
+    "check-env": "node scripts/check-env.js",
+    
+    "dev:db": "docker-compose up -d db adminer",
+    "dev:full": "docker-compose up -d && npm run dev",
+    "dev:stop": "docker-compose down",
+    "dev:clean": "docker-compose down -v && docker system prune -f",
+    "docker:up": "docker-compose up -d",
+    "docker:down": "docker-compose down",
+    "docker:logs": "docker-compose logs -f",
+    
+    "db:generate": "prisma generate",
+    "db:push": "prisma db push",
+    "db:studio": "prisma studio",
+    "db:reset": "prisma db push --force-reset",
+    "db:setup": "npm run db:generate && npm run db:push",
+    "db:seed": "node scripts/seed.js",
+    
+    "prod:build": "NODE_ENV=production next build",
+    "prod:start": "NODE_ENV=production next start",
+    "prod:deploy": "npm run prod:build && npm run db:push",
+    
+    "logs": "docker-compose logs -f",
+    "logs:db": "docker-compose logs -f db",
+    "logs:app": "docker-compose logs -f app",
+    "ps": "docker-compose ps",
+    
+    "clean": "rm -rf .next node_modules",
+    "fresh": "npm run clean && npm install && npm run setup && npm run dev:db && npm run db:setup",
+    "env:setup": "copy .env.example .env.local"
+  },
+  "dependencies": {
+    "@auth/prisma-adapter": "^2.10.0",
+    "@prisma/client": "^6.11.1",
+    "@radix-ui/react-label": "^2.1.7",
+    "@radix-ui/react-slot": "^1.2.3",
+    "@radix-ui/react-tabs": "^1.1.12",
+    "@types/bcryptjs": "^2.4.6",
+    "@uploadthing/react": "^7.3.2",
+    "bcryptjs": "^3.0.2",
+    "class-variance-authority": "^0.7.1",
+    "clsx": "^2.1.1",
+    "lucide-react": "^0.525.0",
+    "next": "^15.0.3",
+    "next-auth": "^5.0.0-beta.29",
+    "react": "^18.3.1",
+    "react-dom": "^18.3.1",
+    "tailwind-merge": "^3.3.1",
+    "typescript": "^5.6.2",
+    "uploadthing": "^7.7.3",
+    "zod": "^4.0.5"
+  },
+  "devDependencies": {
+    "@types/node": "^22.6.1",
+    "@types/react": "^18.3.8",
+    "@types/react-dom": "^18.3.0",
+    "autoprefixer": "^10.4.20",
+    "eslint": "^8.57.1",
+    "eslint-config-next": "^15.0.3",
+    "postcss": "^8.4.47",
+    "prisma": "^6.11.1",
+    "tailwindcss": "^3.4.12",
+    "tailwindcss-animate": "^1.0.7"
+  },
+  "engines": {
+    "node": ">=18.17.0"
+  }
+}
