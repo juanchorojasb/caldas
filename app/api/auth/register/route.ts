@@ -16,7 +16,6 @@ const registerSchema = z.object({
   
   // Campos opcionales
   phone: z.string().optional(),
-  municipality: z.string().optional(),
   whatsapp: z.string().optional(),
   
   // Términos (opcional para compatibilidad)
@@ -100,39 +99,16 @@ export async function POST(request: NextRequest) {
         email: validatedData.email.toLowerCase(),
         password: hashedPassword,
         phone: validatedData.phone || validatedData.whatsapp || null,
-        role: 'USER',
-        isVerified: false
       },
       select: {
         id: true,
         name: true,
         email: true,
-        role: true,
-        createdAt: true
+        phone: true
       }
     })
 
     console.log('✅ Usuario creado exitosamente:', user.email)
-
-    // Log de actividad (opcional - no falla si no existe la tabla)
-    try {
-      await db.activityLog.create({
-        data: {
-          userId: user.id,
-          action: 'USER_REGISTERED',
-          description: `Usuario registrado: ${user.email}`,
-          metadata: JSON.stringify({
-            userAgent: request.headers.get('user-agent'),
-            ip: request.headers.get('x-forwarded-for') || 'unknown',
-            municipality: validatedData.municipality
-          })
-        }
-      })
-      console.log('📊 Log de actividad creado')
-    } catch (logError) {
-      console.log('⚠️ No se pudo crear log de actividad (tabla no existe):', logError)
-      // No fallar el registro por esto
-    }
 
     // Respuesta exitosa
     return NextResponse.json({
@@ -142,7 +118,7 @@ export async function POST(request: NextRequest) {
         id: user.id,
         name: user.name,
         email: user.email,
-        role: user.role
+        // role: "STUDENT" // No disponible en select
       }
     })
 

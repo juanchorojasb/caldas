@@ -1,46 +1,25 @@
-import { NextRequest, NextResponse } from "next/server"
-import { db } from "@/lib/db"
+import { NextResponse } from 'next/server';
 
 export async function GET() {
   try {
-    const categories = await db.category.findMany({
-      where: {
-        isActive: true
-      },
-      orderBy: {
-        order: "asc"
-      },
-      include: {
-        _count: {
-          select: {
-            products: true,
-            services: true
-          }
-        }
-      }
-    })
+    // Categorías basadas en el enum CourseCategory
+    const categories = [
+      { id: 'EMPRESARIAL', name: 'Empresarial', icon: '🏢' },
+      { id: 'HUMANA', name: 'Habilidades Humanas', icon: '👥' },
+      { id: 'TECNICA', name: 'Técnica', icon: '⚙️' },
+      { id: 'MARKETING', name: 'Marketing', icon: '📈' },
+      { id: 'FINANZAS', name: 'Finanzas', icon: '💰' }
+    ];
 
-    const categoriesWithCount = categories.map(category => ({
-      ...category,
-      totalCount: category._count.products + category._count.services
-    }))
-
-    return NextResponse.json({ 
-      success: true, 
-      categories: categoriesWithCount 
-    })
+    return NextResponse.json({
+      success: true,
+      categories: categories
+    });
   } catch (error) {
-    console.error("Error fetching categories:", error)
+    console.error('Error fetching categories:', error);
     return NextResponse.json(
-      { success: false, message: "Error al obtener categorías" }, 
+      { success: false, message: 'Error interno del servidor' },
       { status: 500 }
-    )
+    );
   }
-}
-
-export async function POST(request: NextRequest) {
-  return NextResponse.json(
-    { success: false, message: "Funcionalidad en desarrollo" },
-    { status: 503 }
-  )
 }
