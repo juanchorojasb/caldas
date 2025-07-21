@@ -43,24 +43,22 @@ export default function RegisterPage() {
 
     const formData = new FormData(e.currentTarget)
 
-    // ✅ SOLUCIÓN DEFINITIVA: Campos separados desde el inicio
-    const data = {
-      first_name: (formData.get('first_name') as string).trim(),
-      last_name: (formData.get('last_name') as string).trim() || 'N/A', // ✅ Garantizar apellido
+const data = {
+      firstName: (formData.get('first_name') as string).trim(),
+      lastName: (formData.get('last_name') as string).trim() || 'N/A',
       email: formData.get('email') as string,
       password: formData.get('password') as string,
       municipality: formData.get('municipality') as string,
-      business_stage: formData.get('business_stage') as string,
-      business_name: formData.get('business_name') as string,
-      business_type: formData.get('business_type') as string,
+      businessStage: formData.get('business_stage') as string,
+      businessName: formData.get('business_name') as string,
+      businessType: formData.get('business_type') as string,
       phone: formData.get('phone') as string || '',
       website: formData.get('website') as string || '',
       instagram: formData.get('instagram') as string || '',
       facebook: formData.get('facebook') as string || '',
       whatsapp: formData.get('whatsapp') as string || '',
-      accepted_terms: formData.get('acceptedTerms') === 'on'
+      acceptedTerms: formData.get('acceptedTerms') === 'on'
     }
-
     console.log('📤 Enviando datos:', data)
 
     try {

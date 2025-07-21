@@ -1,6 +1,7 @@
 'use client'
 import { useState } from 'react'
 import { useRouter } from 'next/navigation'
+import Link from 'next/link'
 
 export default function LoginPage() {
   const [email, setEmail] = useState('')
@@ -87,7 +88,15 @@ export default function LoginPage() {
           </button>
         </form>
 
-        <div className="p-4 bg-blue-50 rounded-md text-sm">
+<div className="text-center">
+            <Link
+              href="/auth/forgot-password"
+              className="text-sm text-blue-600 hover:text-blue-800"
+            >
+              ¿Olvidaste tu contraseña?
+            </Link>
+          </div>        
+<div className="p-4 bg-blue-50 rounded-md text-sm">
           <p><strong>Usuarios de prueba:</strong></p>
           <p>david@gmail.com / 12345678</p>
         </div>

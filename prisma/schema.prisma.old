@@ -1,0 +1,316 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "mysql"
+  url      = env("DATABASE_URL")
+}
+
+enum Municipality {
+  NEIRA
+  ARANZAZU
+  PACORA
+  SALAMINA
+  AGUADAS
+}
+
+enum BusinessStage {
+  PRE_SEMILLA
+  SEMILLA
+  TEMPRANA
+  CRECIMIENTO
+  CONSOLIDACION
+}
+
+enum UserRole {
+  ADMIN
+  INSTRUCTOR
+  STUDENT
+}
+
+enum CourseCategory {
+  EMPRESARIAL
+  HUMANA
+  TECNICA
+  MARKETING
+  FINANZAS
+}
+
+model Account {
+  id                String  @id @default(cuid())
+  userId            String  @map("user_id")
+  type              String
+  provider          String
+  providerAccountId String  @map("provider_account_id")
+  refresh_token     String? @db.Text
+  access_token      String? @db.Text
+  expires_at        Int?
+  token_type        String?
+  scope             String?
+  id_token          String? @db.Text
+  session_state     String?
+  user              User    @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([provider, providerAccountId])
+  @@map("accounts")
+}
+
+model Session {
+  id           String   @id @default(cuid())
+  sessionToken String   @unique @map("session_token")
+  userId       String   @map("user_id")
+  expires      DateTime
+  user         User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@map("sessions")
+}
+
+model VerificationToken {
+  identifier String
+  token      String   @unique
+  expires    DateTime
+
+  @@unique([identifier, token])
+  @@map("verificationtokens")
+}
+
+model User {
+  id                   String        @id @default(cuid())
+  email                String        @unique
+  emailVerified        DateTime?     @map("email_verified")
+  password             String?
+  firstName            String        @map("first_name")
+  lastName             String        @map("last_name")
+  phone                String?
+  image                String?
+  municipality         Municipality
+  businessStage        BusinessStage @map("business_stage")
+  businessName         String?       @map("business_name")
+  businessType         String?       @map("business_type")
+  businessDescription  String?       @map("business_description")
+  website              String?
+  instagram            String?
+  facebook             String?
+  whatsapp             String?
+  role                 UserRole      @default(STUDENT)
+  isActive             Boolean       @default(true) @map("is_active")
+  acceptedTerms        Boolean       @default(false) @map("accepted_terms")
+  createdAt            DateTime      @default(now()) @map("created_at")
+  updatedAt            DateTime?     @updatedAt @map("updated_at")
+  lastLoginAt          DateTime?     @map("last_login_at")
+  
+  accounts             Account[]
+  sessions             Session[]
+  enrollments          Enrollment[]
+
+  @@map("users")
+}
+
+model Course {
+  id               String         @id @default(cuid())
+  title            String
+  description      String?        @db.Text
+  category         CourseCategory
+  thumbnail        String?
+  duration         Int?           // in minutes
+  level            String         @default("Beginner")
+  instructorName   String         @map("instructor_name")
+  instructorBio    String?        @map("instructor_bio")
+  isPublished      Boolean        @default(false) @map("is_published")
+  isActive         Boolean        @default(true) @map("is_active")
+  createdAt        DateTime       @default(now()) @map("created_at")
+  updatedAt        DateTime       @updatedAt @map("updated_at")
+  
+  videos           Video[]
+  enrollments      Enrollment[]
+
+  @@map("courses")
+}
+
+model Video {
+  id          String   @id @default(cuid())
+  courseId    String   @map("course_id")
+  title       String
+  description String?  @db.Text
+  videoUrl    String   @map("video_url")
+  duration    Int?     // in seconds
+  order       Int      @default(0)
+  isPublished Boolean  @default(false) @map("is_published")
+  createdAt   DateTime @default(now()) @map("created_at")
+  updatedAt   DateTime @updatedAt @map("updated_at")
+  
+  course      Course   @relation(fields: [courseId], references: [id], onDelete: Cascade)
+
+  @@map("videos")
+}
+
+model Enrollment {
+  id           String    @id @default(cuid())
+  userId       String    @map("user_id")
+  courseId     String    @map("course_id")
+  enrolledAt   DateTime  @default(now()) @map("enrolled_at")
+  completedAt  DateTime? @map("completed_at")
+  progress     Float     @default(0) // percentage 0-100
+  isActive     Boolean   @default(true) @map("is_active")
+  
+  user         User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  course       Course    @relation(fields: [courseId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, courseId])
+  @@map("enrollments")
+}
+
+model PasswordReset {
+  id        String   @id @default(cuid())
+  email     String
+  token     String   @unique
+  expiresAt DateTime
+  used      Boolean  @default(false)
+  createdAt DateTime @default(now()) @map("created_at")
+  
+  @@map("password_resets")
+}
+// Agregar al schema.prisma existente
+
+model Category {
+  id          String   @id @default(cuid())
+  name        String
+  description String?
+  icon        String?
+  color       String?
+  courses     Course[]
+  createdAt   DateTime @default(now()) @map("created_at")
+  updatedAt   DateTime @updatedAt @map("updated_at")
+
+  @@map("categories")
+}
+
+model Course {
+  id               String            @id @default(cuid())
+  title            String
+  description      String
+  shortDescription String?           @map("short_description")
+  thumbnail        String?
+  duration         Int?              // minutos
+  level            Level             @default(BEGINNER)
+  price            Float             @default(0)
+  isPremium        Boolean           @default(false) @map("is_premium")
+  isPublished      Boolean           @default(false) @map("is_published")
+  categoryId       String            @map("category_id")
+  instructorId     String            @map("instructor_id")
+  
+  // Relaciones
+  category         Category          @relation(fields: [categoryId], references: [id])
+  instructor       User              @relation(fields: [instructorId], references: [id])
+  lessons          Lesson[]
+  enrollments      Enrollment[]
+  reviews          Review[]
+  
+  createdAt        DateTime          @default(now()) @map("created_at")
+  updatedAt        DateTime          @updatedAt @map("updated_at")
+
+  @@map("courses")
+}
+
+model Lesson {
+  id          String   @id @default(cuid())
+  title       String
+  description String?
+  content     String   @db.Text
+  videoUrl    String?  @map("video_url")
+  duration    Int?     // minutos
+  order       Int
+  isFree      Boolean  @default(false) @map("is_free")
+  courseId    String   @map("course_id")
+  
+  // Relaciones
+  course      Course           @relation(fields: [courseId], references: [id], onDelete: Cascade)
+  progress    LessonProgress[]
+  
+  createdAt   DateTime @default(now()) @map("created_at")
+  updatedAt   DateTime @updatedAt @map("updated_at")
+
+  @@map("lessons")
+}
+
+model Enrollment {
+  id           String            @id @default(cuid())
+  userId       String            @map("user_id")
+  courseId     String            @map("course_id")
+  progress     Float             @default(0) // porcentaje 0-100
+  isCompleted  Boolean           @default(false) @map("is_completed")
+  completedAt  DateTime?         @map("completed_at")
+  
+  // Relaciones
+  user         User              @relation(fields: [userId], references: [id])
+  course       Course            @relation(fields: [courseId], references: [id])
+  lessonProgress LessonProgress[]
+  
+  enrolledAt   DateTime          @default(now()) @map("enrolled_at")
+  updatedAt    DateTime          @updatedAt @map("updated_at")
+
+  @@unique([userId, courseId])
+  @@map("enrollments")
+}
+
+model LessonProgress {
+  id           String     @id @default(cuid())
+  userId       String     @map("user_id")
+  lessonId     String     @map("lesson_id")
+  enrollmentId String     @map("enrollment_id")
+  isCompleted  Boolean    @default(false) @map("is_completed")
+  timeWatched  Int        @default(0) @map("time_watched") // segundos
+  completedAt  DateTime?  @map("completed_at")
+  
+  // Relaciones
+  user         User       @relation(fields: [userId], references: [id])
+  lesson       Lesson     @relation(fields: [lessonId], references: [id])
+  enrollment   Enrollment @relation(fields: [enrollmentId], references: [id])
+  
+  createdAt    DateTime   @default(now()) @map("created_at")
+  updatedAt    DateTime   @updatedAt @map("updated_at")
+
+  @@unique([userId, lessonId])
+  @@map("lesson_progress")
+}
+
+model Review {
+  id        String   @id @default(cuid())
+  userId    String   @map("user_id")
+  courseId  String   @map("course_id")
+  rating    Int      // 1-5
+  comment   String?
+  
+  // Relaciones
+  user      User     @relation(fields: [userId], references: [id])
+  course    Course   @relation(fields: [courseId], references: [id])
+  
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
+
+  @@unique([userId, courseId])
+  @@map("reviews")
+}
+
+enum Level {
+  BEGINNER
+  INTERMEDIATE
+  ADVANCED
+}
+
+// Actualizar modelo User para agregar relaciones
+model User {
+  // ... campos existentes ...
+  
+  // Nuevas relaciones para cursos
+  coursesInstructed Course[]         @relation("InstructorCourses")
+  enrollments       Enrollment[]
+  lessonProgress    LessonProgress[]
+  reviews           Review[]
+  
+  // ... resto del modelo existente ...
+}

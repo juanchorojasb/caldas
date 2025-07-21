@@ -1,236 +1,284 @@
-import { auth } from "@/lib/auth"
-import { db } from "@/lib/db"
-import Link from "next/link"
+'use client'
+import { useState, useEffect } from 'react'
+import { useRouter } from 'next/navigation'
 
-export default async function ProfilePage() {
-  const session = await auth()
-  
-  const user = await db.user.findUnique({
-    where: { id: session?.user?.id },
-    select: {
-      firstName: true,
-      lastName: true,
-      email: true,
-      phone: true,
-      municipality: true,
-      businessStage: true,
-      businessName: true,
-      businessDescription: true,
-      businessType: true,
-      website: true,
-      instagram: true,
-      facebook: true,
-      whatsapp: true,
-      createdAt: true,
-      lastLoginAt: true,
-    }
+export default function ProfilePage() {
+  const [user, setUser] = useState<any>(null)
+  const [loading, setLoading] = useState(true)
+  const [saving, setSaving] = useState(false)
+  const [message, setMessage] = useState('')
+  const router = useRouter()
+
+  const [formData, setFormData] = useState({
+    firstName: '',
+    lastName: '',
+    phone: '',
+    businessName: '',
+    businessType: '',
+    businessDescription: '',
+    municipality: '',
+    businessStage: '',
+    website: '',
+    instagram: '',
+    facebook: '',
+    whatsapp: ''
   })
 
-  // Parse additional info si existe
-  let additionalInfo = {}
-  try {
-    if (user?.businessType) {
-      additionalInfo = JSON.parse(user.businessType)
+  useEffect(() => {
+    const userData = localStorage.getItem('user')
+    if (!userData) {
+      router.push('/auth/login')
+      return
     }
-  } catch (e) {
-    // Ignore parsing errors
+
+    const userInfo = JSON.parse(userData)
+    fetchProfile(userInfo.id)
+  }, [router])
+
+  const fetchProfile = async (userId: string) => {
+    try {
+      const response = await fetch(`/api/profile?userId=${userId}`)
+      const data = await response.json()
+      
+      if (data.user) {
+        setUser(data.user)
+        setFormData({
+          firstName: data.user.firstName || '',
+          lastName: data.user.lastName || '',
+          phone: data.user.phone || '',
+          businessName: data.user.businessName || '',
+          businessType: data.user.businessType || '',
+          businessDescription: data.user.businessDescription || '',
+          municipality: data.user.municipality || '',
+          businessStage: data.user.businessStage || '',
+          website: data.user.website || '',
+          instagram: data.user.instagram || '',
+          facebook: data.user.facebook || '',
+          whatsapp: data.user.whatsapp || ''
+        })
+      }
+    } catch (error) {
+      console.error('Error fetching profile:', error)
+    } finally {
+      setLoading(false)
+    }
   }
 
-  const getStageInfo = (stage: string) => {
-    const stages: Record<string, { emoji: string, label: string, description: string }> = {
-      'PRE_SEMILLA': { emoji: '💡', label: 'Pre-Semilla', description: 'Ideas y conceptos iniciales' },
-      'SEMILLA': { emoji: '🌱', label: 'Semilla', description: 'Plan de negocios y prototipos' },
-      'TEMPRANA': { emoji: '🚀', label: 'Temprana', description: 'Primeros clientes y ventas' },
-      'CRECIMIENTO': { emoji: '📈', label: 'Crecimiento', description: 'Escalando el negocio' },
-      'CONSOLIDACION': { emoji: '🏆', label: 'Consolidación', description: 'Empresa establecida' }
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault()
+    setSaving(true)
+    setMessage('')
+
+    try {
+      const response = await fetch('/api/profile', {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ userId: user.id, ...formData })
+      })
+
+      const data = await response.json()
+      
+      if (data.success) {
+        setMessage('✅ Perfil actualizado exitosamente')
+        // Actualizar localStorage
+        const currentUser = JSON.parse(localStorage.getItem('user') || '{}')
+        localStorage.setItem('user', JSON.stringify({ ...currentUser, ...formData }))
+      } else {
+        setMessage('❌ Error al actualizar perfil')
+      }
+    } catch (error) {
+      setMessage('❌ Error de conexión')
+    } finally {
+      setSaving(false)
     }
-    return stages[stage] || { emoji: '🔹', label: stage, description: '' }
   }
 
-  const getMunicipalityName = (municipality: string) => {
-    const names: Record<string, string> = {
-      'NEIRA': 'Neira',
-      'ARANZAZU': 'Aranzazu',
-      'PACORA': 'Pácora',
-      'SALAMINA': 'Salamina',
-      'AGUADAS': 'Aguadas'
-    }
-    return names[municipality] || municipality
+  if (loading) {
+    return <div className="p-8">Cargando perfil...</div>
   }
-
-  const stageInfo = getStageInfo(user?.businessStage || '')
 
   return (
-    <div className="space-y-6">
-      {/* Header */}
-      <div className="flex justify-between items-center">
-        <h1 className="text-2xl font-bold text-gray-900">Mi Perfil</h1>
-        <Link 
-          href="/dashboard"
-          className="text-primary-600 hover:text-primary-700 text-sm"
-        >
-          ← Volver al Dashboard
-        </Link>
+    <div className="min-h-screen bg-gray-50">
+      <div className="bg-white shadow">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+          <div className="flex justify-between items-center py-6">
+            <h1 className="text-3xl font-bold text-gray-900">Mi Perfil</h1>
+            <button
+              onClick={() => router.push('/dashboard')}
+              className="bg-gray-600 text-white px-4 py-2 rounded-md hover:bg-gray-700"
+            >
+              Volver al Dashboard
+            </button>
+          </div>
+        </div>
       </div>
 
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-        {/* Información Personal */}
-        <div className="lg:col-span-2 space-y-6">
-          <div className="bg-white rounded-lg p-6 shadow-sm border">
-            <h2 className="text-lg font-semibold text-gray-900 mb-4">👤 Información Personal</h2>
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              <div>
-                <label className="block text-sm font-medium text-gray-700">Nombre Completo</label>
-                <p className="mt-1 text-sm text-gray-900">{user?.firstName} {user?.lastName}</p>
-              </div>
-              <div>
-                <label className="block text-sm font-medium text-gray-700">Email</label>
-                <p className="mt-1 text-sm text-gray-900">{user?.email}</p>
-              </div>
-              <div>
-                <label className="block text-sm font-medium text-gray-700">Teléfono</label>
-                <p className="mt-1 text-sm text-gray-900">{user?.phone || 'No especificado'}</p>
-              </div>
-              <div>
-                <label className="block text-sm font-medium text-gray-700">Municipio</label>
-                <p className="mt-1 text-sm text-gray-900">📍 {getMunicipalityName(user?.municipality || '')}</p>
-              </div>
-            </div>
-          </div>
-
-          {/* Información Empresarial */}
-          <div className="bg-white rounded-lg p-6 shadow-sm border">
-            <h2 className="text-lg font-semibold text-gray-900 mb-4">🏢 Información Empresarial</h2>
-            <div className="space-y-4">
-              <div>
-                <label className="block text-sm font-medium text-gray-700">Etapa del Emprendimiento</label>
-                <div className="mt-1 flex items-center">
-                  <span className="text-2xl mr-2">{stageInfo.emoji}</span>
-                  <div>
-                    <p className="text-sm font-medium text-gray-900">{stageInfo.label}</p>
-                    <p className="text-xs text-gray-500">{stageInfo.description}</p>
-                  </div>
-                </div>
-              </div>
-              
-              {user?.businessName && (
-                <div>
-                  <label className="block text-sm font-medium text-gray-700">Nombre del Emprendimiento</label>
-                  <p className="mt-1 text-sm text-gray-900">{user.businessName}</p>
+      <div className="max-w-4xl mx-auto py-6 sm:px-6 lg:px-8">
+        <div className="bg-white overflow-hidden shadow rounded-lg">
+          <div className="px-4 py-5 sm:p-6">
+            <form onSubmit={handleSubmit} className="space-y-6">
+              {message && (
+                <div className={`p-4 rounded-md ${
+                  message.includes('✅') ? 'bg-green-50 text-green-700' : 'bg-red-50 text-red-700'
+                }`}>
+                  {message}
                 </div>
               )}
 
-              {user?.businessDescription && (
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                 <div>
-                  <label className="block text-sm font-medium text-gray-700">Descripción del Negocio</label>
-                  <p className="mt-1 text-sm text-gray-900 whitespace-pre-wrap">{user.businessDescription}</p>
+                  <label className="block text-sm font-medium text-gray-700">Nombre</label>
+                  <input
+                    type="text"
+                    value={formData.firstName}
+                    onChange={(e) => setFormData({...formData, firstName: e.target.value})}
+                    className="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md"
+                    required
+                  />
                 </div>
-              )}
-            </div>
-          </div>
 
-          {/* Presencia Digital */}
-          {(user?.website || user?.instagram || user?.facebook || user?.whatsapp) && (
-            <div className="bg-white rounded-lg p-6 shadow-sm border">
-              <h2 className="text-lg font-semibold text-gray-900 mb-4">🌐 Presencia Digital</h2>
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                {user?.website && (
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700">🌍 Sitio Web</label>
-                    <a 
-                      href={user.website} 
-                      target="_blank" 
-                      rel="noopener noreferrer"
-                      className="mt-1 text-sm text-primary-600 hover:text-primary-700"
-                    >
-                      {user.website}
-                    </a>
-                  </div>
-                )}
-                
-                {user?.whatsapp && (
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700">📱 WhatsApp</label>
-                    <p className="mt-1 text-sm text-gray-900">{user.whatsapp}</p>
-                  </div>
-                )}
-                
-                {user?.instagram && (
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700">📷 Instagram</label>
-                    <a 
-                      href={`https://instagram.com/${user.instagram}`} 
-                      target="_blank" 
-                      rel="noopener noreferrer"
-                      className="mt-1 text-sm text-primary-600 hover:text-primary-700"
-                    >
-                      @{user.instagram}
-                    </a>
-                  </div>
-                )}
-                
-                {user?.facebook && (
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700">👥 Facebook</label>
-                    <a 
-                      href={`https://facebook.com/${user.facebook}`} 
-                      target="_blank" 
-                      rel="noopener noreferrer"
-                      className="mt-1 text-sm text-primary-600 hover:text-primary-700"
-                    >
-                      fb.com/{user.facebook}
-                    </a>
-                  </div>
-                )}
+                <div>
+                  <label className="block text-sm font-medium text-gray-700">Apellido</label>
+                  <input
+                    type="text"
+                    value={formData.lastName}
+                    onChange={(e) => setFormData({...formData, lastName: e.target.value})}
+                    className="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md"
+                    required
+                  />
+                </div>
+
+                <div>
+                  <label className="block text-sm font-medium text-gray-700">Teléfono</label>
+                  <input
+                    type="tel"
+                    value={formData.phone}
+                    onChange={(e) => setFormData({...formData, phone: e.target.value})}
+                    className="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md"
+                  />
+                </div>
+
+                <div>
+                  <label className="block text-sm font-medium text-gray-700">Municipio</label>
+                  <select
+                    value={formData.municipality}
+                    onChange={(e) => setFormData({...formData, municipality: e.target.value})}
+                    className="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md"
+                    required
+                  >
+                    <option value="">Seleccionar municipio</option>
+                    <option value="NEIRA">Neira</option>
+                    <option value="ARANZAZU">Aranzazu</option>
+                    <option value="PACORA">Pácora</option>
+                    <option value="SALAMINA">Salamina</option>
+                    <option value="AGUADAS">Aguadas</option>
+                  </select>
+                </div>
+
+                <div>
+                  <label className="block text-sm font-medium text-gray-700">Nombre del Negocio</label>
+                  <input
+                    type="text"
+                    value={formData.businessName}
+                    onChange={(e) => setFormData({...formData, businessName: e.target.value})}
+                    className="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md"
+                  />
+                </div>
+
+                <div>
+                  <label className="block text-sm font-medium text-gray-700">Tipo de Negocio</label>
+                  <input
+                    type="text"
+                    value={formData.businessType}
+                    onChange={(e) => setFormData({...formData, businessType: e.target.value})}
+                    className="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md"
+                    placeholder="Ej: Restaurante, Tienda, Servicios"
+                  />
+                </div>
+
+                <div>
+                  <label className="block text-sm font-medium text-gray-700">Etapa del Negocio</label>
+                  <select
+                    value={formData.businessStage}
+                    onChange={(e) => setFormData({...formData, businessStage: e.target.value})}
+                    className="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md"
+                    required
+                  >
+                    <option value="">Seleccionar etapa</option>
+                    <option value="PRE_SEMILLA">Pre-semilla</option>
+                    <option value="SEMILLA">Semilla</option>
+                    <option value="TEMPRANA">Temprana</option>
+                    <option value="CRECIMIENTO">Crecimiento</option>
+                    <option value="CONSOLIDACION">Consolidación</option>
+                  </select>
+                </div>
+
+                <div>
+                  <label className="block text-sm font-medium text-gray-700">Sitio Web</label>
+                  <input
+                    type="url"
+                    value={formData.website}
+                    onChange={(e) => setFormData({...formData, website: e.target.value})}
+                    className="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md"
+                    placeholder="https://..."
+                  />
+                </div>
+
+                <div>
+                  <label className="block text-sm font-medium text-gray-700">Instagram</label>
+                  <input
+                    type="text"
+                    value={formData.instagram}
+                    onChange={(e) => setFormData({...formData, instagram: e.target.value})}
+                    className="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md"
+                    placeholder="@usuario"
+                  />
+                </div>
+
+                <div>
+                  <label className="block text-sm font-medium text-gray-700">Facebook</label>
+                  <input
+                    type="text"
+                    value={formData.facebook}
+                    onChange={(e) => setFormData({...formData, facebook: e.target.value})}
+                    className="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md"
+                    placeholder="facebook.com/pagina"
+                  />
+                </div>
+
+                <div>
+                  <label className="block text-sm font-medium text-gray-700">WhatsApp</label>
+                  <input
+                    type="tel"
+                    value={formData.whatsapp}
+                    onChange={(e) => setFormData({...formData, whatsapp: e.target.value})}
+                    className="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md"
+                    placeholder="+57 300 123 4567"
+                  />
+                </div>
               </div>
-            </div>
-          )}
-        </div>
 
-        {/* Sidebar */}
-        <div className="space-y-6">
-          {/* Account Stats */}
-          <div className="bg-white rounded-lg p-6 shadow-sm border">
-            <h3 className="text-lg font-semibold text-gray-900 mb-4">📊 Mi Cuenta</h3>
-            <div className="space-y-3">
               <div>
-                <label className="block text-xs font-medium text-gray-500 uppercase tracking-wide">Miembro desde</label>
-                <p className="text-sm text-gray-900">{user?.createdAt?.toLocaleDateString('es-ES', { 
-                  year: 'numeric', 
-                  month: 'long', 
-                  day: 'numeric' 
-                })}</p>
+                <label className="block text-sm font-medium text-gray-700">Descripción del Negocio</label>
+                <textarea
+                  value={formData.businessDescription}
+                  onChange={(e) => setFormData({...formData, businessDescription: e.target.value})}
+                  rows={4}
+                  className="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md"
+                  placeholder="Describe tu negocio..."
+                />
               </div>
-              
-              {user?.lastLoginAt && (
-                <div>
-                  <label className="block text-xs font-medium text-gray-500 uppercase tracking-wide">Último acceso</label>
-                  <p className="text-sm text-gray-900">{user.lastLoginAt.toLocaleDateString('es-ES', { 
-                    year: 'numeric', 
-                    month: 'short', 
-                    day: 'numeric',
-                    hour: '2-digit',
-                    minute: '2-digit'
-                  })}</p>
-                </div>
-              )}
-            </div>
-          </div>
 
-          {/* Quick Actions */}
-          <div className="bg-white rounded-lg p-6 shadow-sm border">
-            <h3 className="text-lg font-semibold text-gray-900 mb-4">⚡ Acciones Rápidas</h3>
-            <div className="space-y-2">
-              <button className="w-full text-left px-3 py-2 text-sm text-gray-700 hover:bg-gray-50 rounded">
-                ✏️ Editar Perfil
-              </button>
-              <button className="w-full text-left px-3 py-2 text-sm text-gray-700 hover:bg-gray-50 rounded">
-                🔔 Configurar Notificaciones
-              </button>
-              <button className="w-full text-left px-3 py-2 text-sm text-gray-700 hover:bg-gray-50 rounded">
-                🎯 Ver Mis Cursos
-              </button>
-            </div>
+              <div className="flex justify-end">
+                <button
+                  type="submit"
+                  disabled={saving}
+                  className="bg-blue-600 text-white px-6 py-2 rounded-md hover:bg-blue-700 disabled:opacity-50"
+                >
+                  {saving ? 'Guardando...' : 'Guardar Cambios'}
+                </button>
+              </div>
+            </form>
           </div>
         </div>
       </div>

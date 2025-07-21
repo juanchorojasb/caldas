@@ -1,317 +1,284 @@
-import Link from "next/link"
+import React from 'react';
+import { Heart, MessageCircle, Share2, Bookmark, Search, MapPin, Users, BookOpen, ShoppingBag, Play, ArrowRight } from 'lucide-react';
 
-export default function HomePage() {
-  return (
-    <div className="min-h-screen bg-gradient-to-br from-green-400 via-green-500 to-yellow-400">
-      <div className="container mx-auto px-6 py-12 max-w-6xl">
+const HomePage = () => {
+  const feedPosts = [
+    {
+      id: 1,
+      vendor: {
+        name: "Café del Ruiz",
+        avatar: "/api/placeholder/40/40",
+        location: "Neira, Caldas",
+        verified: true
+      },
+      images: ["/api/placeholder/400/400"],
+      description: "☕ Café especial 100% caldense de altura. Tostado artesanal con notas a chocolate y caramelo. ¡El sabor auténtico de nuestras montañas! 🌄 #CaféCaldense",
+      price: "25.000",
+      originalPrice: "30.000",
+      likes: 445,
+      comments: 28,
+      category: "Agricultura y Café",
+      categoryIcon: "☕",
+      timeAgo: "2h",
+      isService: false
+    },
+    {
+      id: 2,
+      vendor: {
+        name: "Artesanías Manizales",
+        avatar: "/api/placeholder/40/40",
+        location: "Manizales, Caldas", 
+        verified: true
+      },
+      images: ["/api/placeholder/400/400"],
+      description: "🧶 Hermosos tejidos en lana virgen hechos a mano por artesanas caldenses. Perfectos para el clima de nuestra bella región. Cada pieza es única y cuenta una historia ❄️",
+      price: "85.000",
+      likes: 234,
+      comments: 12,
+      category: "Accesorios y Artesanías",
+      categoryIcon: "🎨",
+      timeAgo: "4h",
+      isService: false
+    },
+    {
+      id: 3,
+      vendor: {
+        name: "TechCaldas",
+        avatar: "/api/placeholder/40/40",
+        location: "Manizales, Caldas",
+        verified: false
+      },
+      images: ["/api/placeholder/400/400"],
+      description: "💻 Reparación y mantenimiento de equipos. Servicio técnico especializado con garantía. ¡Tu tecnología en las mejores manos! Domicilios sin costo en Manizales 🔧",
+      price: "Desde 35.000",
+      likes: 67,
+      comments: 5,
+      category: "Servicios Técnicos",
+      categoryIcon: "🔧",
+      timeAgo: "6h",
+      isService: true
+    }
+  ];
+
+  const categories = [
+    { name: "Agricultura y Café", icon: "☕", count: 45, color: "bg-amber-100 text-amber-700" },
+    { name: "Artesanías", icon: "🎨", count: 32, color: "bg-red-100 text-red-700" },
+    { name: "Alimentos", icon: "🍯", count: 28, color: "bg-orange-100 text-orange-700" },
+    { name: "Servicios Técnicos", icon: "🔧", count: 24, color: "bg-blue-100 text-blue-700" },
+    { name: "Restaurantes", icon: "🍽️", count: 19, color: "bg-yellow-100 text-yellow-700" },
+    { name: "Hoteles", icon: "🏨", count: 15, color: "bg-green-100 text-green-700" },
+    { name: "Salud y Belleza", icon: "💄", count: 21, color: "bg-purple-100 text-purple-700" },
+    { name: "Transporte", icon: "🚛", count: 12, color: "bg-indigo-100 text-indigo-700" }
+  ];
+
+  const stats = [
+    { label: "Vendedores Activos", value: "150+", icon: Users },
+    { label: "Productos y Servicios", value: "800+", icon: ShoppingBag },
+    { label: "Estudiantes Academia", value: "200+", icon: BookOpen }
+  ];
+
+  const FeedPost = ({ post }: { post: typeof feedPosts[0] }) => (
+    <div className="bg-white border border-gray-200 rounded-xl mb-6 overflow-hidden shadow-sm hover:shadow-md transition-shadow">
+      <div className="flex items-center p-4">
+        <img src={post.vendor.avatar} alt={post.vendor.name} className="w-12 h-12 rounded-full mr-3 object-cover" />
+        <div className="flex-1">
+          <div className="flex items-center">
+            <h3 className="font-semibold text-sm text-gray-900">{post.vendor.name}</h3>
+            {post.vendor.verified && <span className="text-blue-500 ml-1">✓</span>}
+          </div>
+          <div className="flex items-center text-xs text-gray-500">
+            <MapPin className="w-3 h-3 mr-1" />
+            {post.vendor.location}
+          </div>
+        </div>
+        <div className="text-right">
+          <span className="text-xs text-gray-400">{post.timeAgo}</span>
+          <div className={`text-xs px-2 py-1 rounded-full ${
+            post.category.includes('Café') ? 'bg-amber-100 text-amber-700' :
+            post.category.includes('Artesanías') ? 'bg-red-100 text-red-700' :
+            post.category.includes('Técnicos') ? 'bg-blue-100 text-blue-700' :
+            'bg-orange-100 text-orange-700'
+          } mt-1`}>
+            {post.categoryIcon} {post.category}
+          </div>
+        </div>
+      </div>
+
+      <div className="relative">
+        <img src={post.images[0]} alt="Producto" className="w-full h-80 object-cover" />
+        <div className="absolute bottom-4 right-4 bg-black bg-opacity-70 text-white px-4 py-2 rounded-full">
+          <div className="text-sm font-bold">
+            ${post.price}
+            {post.originalPrice && (
+              <span className="text-xs line-through ml-2 opacity-75">${post.originalPrice}</span>
+            )}
+          </div>
+        </div>
+        {post.isService && (
+          <div className="absolute top-4 left-4 bg-blue-600 text-white px-3 py-1 rounded-full text-xs font-medium">
+            Servicio
+          </div>
+        )}
+      </div>
+
+      <div className="p-4">
+        <div className="flex items-center justify-between mb-3">
+          <div className="flex items-center space-x-4">
+            <button className="flex items-center space-x-1 text-gray-600 hover:text-red-500 transition-colors">
+              <Heart className="w-5 h-5" />
+              <span className="text-sm font-medium">{post.likes}</span>
+            </button>
+            <button className="flex items-center space-x-1 text-gray-600 hover:text-blue-500 transition-colors">
+              <MessageCircle className="w-5 h-5" />
+              <span className="text-sm font-medium">{post.comments}</span>
+            </button>
+            <button className="text-gray-600 hover:text-green-500 transition-colors">
+              <Share2 className="w-5 h-5" />
+            </button>
+          </div>
+          <button className="text-gray-600 hover:text-yellow-500 transition-colors">
+            <Bookmark className="w-5 h-5" />
+          </button>
+        </div>
         
-        {/* Header */}
-        <div className="text-center mb-16">
-          <h1 className="text-6xl md:text-7xl font-bold text-white mb-6 leading-tight">
-            mercado local caldas
-          </h1>
-          
-          <div className="inline-flex items-center bg-white/20 backdrop-blur-sm rounded-full px-6 py-3 mb-8">
-            <span className="text-2xl mr-3">🤖</span>
-            <span className="text-xl font-semibold text-white">
-              Transformación Digital con IA para Emprendedores
-            </span>
-          </div>
-          
-          <p className="text-xl text-white/90 max-w-4xl mx-auto leading-relaxed mb-8">
-            Programa integral de formación en Inteligencia Artificial para emprendedores 
-            del Norte de Caldas. Desarrolla tu estrategia de transformación digital usando 
-            los modelos de lenguaje más avanzados.
-          </p>
-
-          {/* Fechas del programa */}
-          <div className="inline-flex items-center bg-yellow-400/20 backdrop-blur-sm rounded-full px-6 py-3 mb-8">
-            <span className="text-xl mr-3">📅</span>
-            <span className="text-lg font-medium text-white">
-              Agosto - Septiembre 2025 | Sesiones en Vivo Semanales
-            </span>
-          </div>
-        </div>
-
-        {/* Respaldo Oficial */}
-        <div className="bg-white/15 backdrop-blur-sm rounded-3xl p-8 mb-16">
-          <div className="text-center mb-8">
-            <h2 className="text-3xl font-bold text-white mb-4">
-              🏛️ Proyecto Oficial del Departamento de Caldas
-            </h2>
-            <p className="text-xl text-white/90 max-w-4xl mx-auto leading-relaxed">
-              Somos uno de los **13 proyectos ganadores** del Fondo de Cofinanciación de 
-              Ciencia, Tecnología e Innovación de Caldas 2024, respaldado por la Gobernación 
-              y administrado por FUEEEC.
-            </p>
-          </div>
-
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
-            <div className="text-center">
-              <div className="bg-white/20 rounded-full w-16 h-16 flex items-center justify-center mx-auto mb-4">
-                <span className="text-3xl">🎯</span>
-              </div>
-              <h3 className="text-lg font-bold text-white mb-2">Proyecto #4</h3>
-              <p className="text-white/80 text-sm">
-                Transformación del modelo de negocio de **50 emprendedores** del Norte de Caldas 
-                hacia la nueva economía digital.
-              </p>
-            </div>
-
-            <div className="text-center">
-              <div className="bg-white/20 rounded-full w-16 h-16 flex items-center justify-center mx-auto mb-4">
-                <span className="text-3xl">🤝</span>
-              </div>
-              <h3 className="text-lg font-bold text-white mb-2">Respaldo FUEEEC</h3>
-              <p className="text-white/80 text-sm">
-                Fundación Universidad Empresa Estado del Eje Cafetero - 26 años articulando 
-                academia, sector productivo y estado.
-              </p>
-            </div>
-
-            <div className="text-center">
-              <div className="bg-white/20 rounded-full w-16 h-16 flex items-center justify-center mx-auto mb-4">
-                <span className="text-3xl">📊</span>
-              </div>
-              <h3 className="text-lg font-bold text-white mb-2">Política Pública CTeI</h3>
-              <p className="text-white/80 text-sm">
-                Alineado con la Política Pública de Ciencia, Tecnología e Innovación 
-                "Caldas Equitativa, Productiva y Sustentable" 2023-2033.
-              </p>
-            </div>
-          </div>
-
-          <div className="bg-white/10 rounded-xl p-6">
-            <div className="flex flex-col md:flex-row items-center gap-6">
-              <div className="flex-1">
-                <h4 className="text-xl font-bold text-white mb-2">
-                  💡 Enfoque en Nueva Economía Digital
-                </h4>
-                <p className="text-white/90 text-sm leading-relaxed">
-                  Nuestro programa desarrolla competencias específicas en **estrategia empresarial**, 
-                  **modelos de negocio**, **mercadeo digital** y **publicidad digital**, todo potenciado 
-                  con **Inteligencia Artificial** para maximizar la competitividad y productividad 
-                  de los emprendedores caldenses.
-                </p>
-              </div>
-              <div className="text-center">
-                <div className="bg-yellow-400 text-gray-900 px-4 py-2 rounded-lg font-bold mb-2">
-                  GANADOR 2024
-                </div>
-                <p className="text-white/70 text-xs">
-                  Fondo de Cofinanciación CTeI
-                </p>
-              </div>
-            </div>
-          </div>
-        </div>
-
-        {/* Metodología Principal */}
-        <div className="bg-white/10 backdrop-blur-sm rounded-3xl p-8 mb-16">
-          <h2 className="text-3xl font-bold text-white text-center mb-8">
-            🎯 Metodología de Transformación Digital
-          </h2>
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-            
-            <div className="text-center">
-              <div className="bg-white/20 rounded-full w-16 h-16 flex items-center justify-center mx-auto mb-4">
-                <span className="text-3xl">🎨</span>
-              </div>
-              <h3 className="text-xl font-bold text-white mb-2">1. Branding con IA</h3>
-              <p className="text-white/80 text-sm">
-                Construye tu identidad de marca usando modelos de lenguaje para 
-                naming, propuesta de valor y storytelling empresarial.
-              </p>
-            </div>
-
-            <div className="text-center">
-              <div className="bg-white/20 rounded-full w-16 h-16 flex items-center justify-center mx-auto mb-4">
-                <span className="text-3xl">📊</span>
-              </div>
-              <h3 className="text-xl font-bold text-white mb-2">2. Modelo de Negocio</h3>
-              <p className="text-white/80 text-sm">
-                Estrategia empresarial con Strategyzer, Business Model Canvas, 
-                mapas de empatía y validación usando IA.
-              </p>
-            </div>
-
-            <div className="text-center">
-              <div className="bg-white/20 rounded-full w-16 h-16 flex items-center justify-center mx-auto mb-4">
-                <span className="text-3xl">🛒</span>
-              </div>
-              <h3 className="text-xl font-bold text-white mb-2">3. Marketing Digital</h3>
-              <p className="text-white/80 text-sm">
-                Comercio electrónico, estrategias de contenido, automatización 
-                y ventas potenciadas con Inteligencia Artificial.
-              </p>
-            </div>
-          </div>
-        </div>
-
-        {/* Niveles de Formación */}
-        <div className="mb-16">
-          <h2 className="text-4xl font-bold text-white text-center mb-8">
-            🚀 Nuestras Formaciones en Inteligencia Artificial
-          </h2>
-          <p className="text-xl text-white/90 text-center mb-12 max-w-4xl mx-auto">
-            Desbloquea tu potencial emprendedor con nuestros programas de IA, 
-            diseñados para cada etapa de desarrollo empresarial.
-          </p>
-
-          <div className="space-y-8">
-            
-            {/* Nivel 1 */}
-            <div className="bg-white/10 backdrop-blur-sm rounded-3xl p-8 hover:bg-white/20 transition-all duration-300">
-              <div className="flex flex-col lg:flex-row items-start gap-6">
-                <div className="flex-1">
-                  <div className="flex items-center gap-3 mb-4">
-                    <span className="bg-blue-500 text-white px-3 py-1 rounded-full text-sm font-bold">NIVEL 1</span>
-                    <span className="text-2xl">🌱</span>
-                  </div>
-                  <h3 className="text-2xl font-bold text-white mb-3">
-                    Fundamentos de IA para Emprendedores
-                  </h3>
-                  <p className="text-white/80 mb-4">
-                    Establece las bases para dialogar con la IA de manera efectiva. 
-                    Domina el arte de los prompts para desarrollar tu branding y propuesta de valor.
-                  </p>
-                  <div className="space-y-2 text-sm text-white/70 mb-4">
-                    <div>• M0: Desmitificando la IA para Emprendedores</div>
-                    <div>• M1: Universo de LLMs y Estrategia de Marca</div>
-                    <div>• M2: Prompts Ganadores para Branding</div>
-                    <div>• Taller: Identidad de Marca con IA</div>
-                  </div>
-                  <div className="flex gap-2 text-xs">
-                    <span className="bg-green-100 text-green-800 px-2 py-1 rounded">Pre-Semilla</span>
-                    <span className="bg-blue-100 text-blue-800 px-2 py-1 rounded">Semilla</span>
-                  </div>
-                </div>
-                <div className="flex flex-col gap-3">
-                  <button className="bg-gradient-to-r from-blue-600 to-purple-600 text-white px-6 py-3 rounded-lg font-medium hover:from-blue-700 hover:to-purple-700 transition-all">
-                    Iniciar Nivel 1
-                  </button>
-                  <span className="text-xs text-white/60 text-center">4 sesiones en vivo</span>
-                </div>
-              </div>
-            </div>
-
-            {/* Nivel 2 */}
-            <div className="bg-white/10 backdrop-blur-sm rounded-3xl p-8 hover:bg-white/20 transition-all duration-300">
-              <div className="flex flex-col lg:flex-row items-start gap-6">
-                <div className="flex-1">
-                  <div className="flex items-center gap-3 mb-4">
-                    <span className="bg-green-500 text-white px-3 py-1 rounded-full text-sm font-bold">NIVEL 2</span>
-                    <span className="text-2xl">📈</span>
-                  </div>
-                  <h3 className="text-2xl font-bold text-white mb-3">
-                    El Emprendedor Aumentado
-                  </h3>
-                  <p className="text-white/80 mb-4">
-                    Aplica IA para crear tu modelo de negocio. Usa Business Model Canvas, 
-                    mapas de empatía y validación de mercado con modelos de lenguaje.
-                  </p>
-                  <div className="space-y-2 text-sm text-white/70 mb-4">
-                    <div>• M1: Business Model Canvas con IA</div>
-                    <div>• M2: Mapas de Empatía y Validación</div>
-                    <div>• M3: Strategyzer y Metodologías Lean</div>
-                    <div>• Proyecto: Tu Modelo de Negocio Definitivo</div>
-                  </div>
-                  <div className="flex gap-2 text-xs">
-                    <span className="bg-yellow-100 text-yellow-800 px-2 py-1 rounded">Temprana</span>
-                    <span className="bg-orange-100 text-orange-800 px-2 py-1 rounded">Crecimiento</span>
-                  </div>
-                </div>
-                <div className="flex flex-col gap-3">
-                  <button className="bg-gradient-to-r from-green-600 to-blue-600 text-white px-6 py-3 rounded-lg font-medium hover:from-green-700 hover:to-blue-700 transition-all">
-                    Iniciar Nivel 2
-                  </button>
-                  <span className="text-xs text-white/60 text-center">4 sesiones en vivo</span>
-                </div>
-              </div>
-            </div>
-
-            {/* Nivel 3 */}
-            <div className="bg-white/10 backdrop-blur-sm rounded-3xl p-8 hover:bg-white/20 transition-all duration-300">
-              <div className="flex flex-col lg:flex-row items-start gap-6">
-                <div className="flex-1">
-                  <div className="flex items-center gap-3 mb-4">
-                    <span className="bg-purple-500 text-white px-3 py-1 rounded-full text-sm font-bold">NIVEL 3</span>
-                    <span className="text-2xl">🚀</span>
-                  </div>
-                  <h3 className="text-2xl font-bold text-white mb-3">
-                    Marketing Digital y E-commerce con IA
-                  </h3>
-                  <p className="text-white/80 mb-4">
-                    Automatiza tu estrategia comercial. Crea contenido, optimiza conversiones 
-                    y desarrolla tu tienda online usando Inteligencia Artificial.
-                  </p>
-                  <div className="space-y-2 text-sm text-white/70 mb-4">
-                    <div>• M1: Estrategia de Contenidos con IA</div>
-                    <div>• M2: E-commerce y Automatización</div>
-                    <div>• M3: CRM Inteligente y Ventas</div>
-                    <div>• Proyecto: Tienda Digital Automatizada</div>
-                  </div>
-                  <div className="flex gap-2 text-xs">
-                    <span className="bg-purple-100 text-purple-800 px-2 py-1 rounded">Consolidación</span>
-                    <span className="bg-red-100 text-red-800 px-2 py-1 rounded">Escalamiento</span>
-                  </div>
-                </div>
-                <div className="flex flex-col gap-3">
-                  <button className="bg-gradient-to-r from-purple-600 to-pink-600 text-white px-6 py-3 rounded-lg font-medium hover:from-purple-700 hover:to-pink-700 transition-all">
-                    Iniciar Nivel 3
-                  </button>
-                  <span className="text-xs text-white/60 text-center">4 sesiones en vivo</span>
-                </div>
-              </div>
-            </div>
-          </div>
-        </div>
-
-        {/* CTA Principal */}
-        <div className="text-center mb-16">
-          <Link
-            href="/auth/register"
-            className="inline-flex items-center bg-gradient-to-r from-yellow-400 to-orange-400 text-gray-900 px-12 py-4 rounded-full text-xl font-bold shadow-2xl hover:shadow-3xl transform hover:-translate-y-1 transition-all duration-300 hover:scale-105"
-          >
-            <span className="text-2xl mr-3">🤖</span>
-            Comenzar Mi Transformación Digital
-          </Link>
-        </div>
-
-        {/* Municipios participantes */}
-        <div className="bg-white/10 backdrop-blur-sm rounded-3xl p-8 mb-12">
-          <h3 className="text-2xl font-bold text-white text-center mb-6">
-            🗺️ Norte de Caldas - Municipios Participantes
-          </h3>
-          <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-5 gap-3 text-sm text-white/80">
-            <div className="text-center p-2 bg-white/10 rounded">Neira</div>
-            <div className="text-center p-2 bg-white/10 rounded">Aranzazu</div>
-            <div className="text-center p-2 bg-white/10 rounded">Pácora</div>
-            <div className="text-center p-2 bg-white/10 rounded">Salamina</div>
-          </div>
-        </div>
-
-        {/* Estado del proyecto */}
-        <div className="text-center">
-          <div className="inline-flex items-center bg-white/20 backdrop-blur-sm rounded-full px-6 py-3">
-            <span className="text-2xl mr-3">🎯</span>
-            <span className="text-lg font-semibold text-white">
-              Programa de Transformación Digital IA - Agosto-Septiembre 2025
-            </span>
-          </div>
-        </div>
-
-        {/* Acceso rápido para usuarios existentes */}
-        <div className="text-center mt-8">
-          <p className="text-white/70 mb-4">¿Ya tienes una cuenta?</p>
-          <Link
-            href="/auth/login"
-            className="inline-flex items-center text-white hover:text-yellow-200 transition-colors underline underline-offset-4"
-          >
-            Acceder al Dashboard
-          </Link>
+        <p className="text-sm text-gray-800 mb-4 leading-relaxed">{post.description}</p>
+        
+        <div className="flex space-x-3">
+          <button className="flex-1 bg-green-600 text-white py-2.5 rounded-lg font-medium hover:bg-green-700 transition-colors">
+            {post.isService ? 'Solicitar Servicio' : 'Ver Producto'}
+          </button>
+          <button className="px-4 py-2.5 border border-green-600 text-green-600 rounded-lg font-medium hover:bg-green-50 transition-colors">
+            Chat
+          </button>
         </div>
       </div>
     </div>
-  )
-}
+  );
+
+  return (
+    <div className="min-h-screen bg-gray-50">
+      <header className="bg-white border-b border-gray-200 sticky top-0 z-50 shadow-sm">
+        <div className="max-w-7xl mx-auto px-4 py-4">
+          <div className="flex items-center justify-between">
+            <div className="flex items-center space-x-4">
+              <div>
+                <h1 className="text-2xl font-bold bg-gradient-to-r from-green-600 to-blue-600 bg-clip-text text-transparent">
+                  MercadoLocal
+                </h1>
+                <p className="text-sm text-gray-500">Caldas, Colombia</p>
+              </div>
+            </div>
+            
+            <div className="flex-1 max-w-md mx-8">
+              <div className="relative">
+                <Search className="w-5 h-5 absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400" />
+                <input 
+                  type="text" 
+                  placeholder="Buscar productos, servicios, tiendas..."
+                  className="w-full pl-10 pr-4 py-2.5 border border-gray-300 rounded-full focus:outline-none focus:ring-2 focus:ring-green-500 focus:border-transparent"
+                />
+              </div>
+            </div>
+
+            <div className="flex items-center space-x-6">
+              <a href="/marketplace" className="text-gray-600 hover:text-green-600 font-medium">
+                Marketplace
+              </a>
+              <a href="/dashboard" className="bg-blue-600 text-white px-4 py-2 rounded-lg font-medium hover:bg-blue-700 transition-colors flex items-center space-x-2">
+                <BookOpen className="w-4 h-4" />
+                <span>Academia IA</span>
+              </a>
+              <a href="/vendedor" className="bg-green-600 text-white px-4 py-2 rounded-lg font-medium hover:bg-green-700 transition-colors">
+                Vender
+              </a>
+            </div>
+          </div>
+        </div>
+      </header>
+
+      <section className="bg-gradient-to-br from-green-600 via-blue-600 to-purple-700 text-white py-16">
+        <div className="max-w-7xl mx-auto px-4 text-center">
+          <h2 className="text-4xl md:text-5xl font-bold mb-6">
+            El Marketplace Oficial de <span className="text-yellow-300">Caldas</span>
+          </h2>
+          <p className="text-xl mb-8 text-green-100 max-w-3xl mx-auto">
+            Descubre productos únicos, servicios locales y aprende con IA. 
+            Una plataforma que conecta emprendedores caldenses con el mundo.
+          </p>
+          
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-8 mb-10">
+            {stats.map((stat, index) => (
+              <div key={index} className="bg-white bg-opacity-10 rounded-lg p-6 backdrop-blur-sm">
+                <stat.icon className="w-8 h-8 mx-auto mb-3 text-yellow-300" />
+                <div className="text-3xl font-bold mb-1">{stat.value}</div>
+                <div className="text-green-100">{stat.label}</div>
+              </div>
+            ))}
+          </div>
+
+          <div className="flex flex-col sm:flex-row gap-4 justify-center">
+            <a href="/marketplace" className="bg-white text-green-600 px-8 py-3 rounded-lg font-semibold hover:bg-gray-100 transition-colors inline-flex items-center justify-center">
+              <ShoppingBag className="w-5 h-5 mr-2" />
+              Explorar Marketplace
+            </a>
+            <a href="/dashboard" className="border-2 border-white text-white px-8 py-3 rounded-lg font-semibold hover:bg-white hover:text-green-600 transition-colors inline-flex items-center justify-center">
+              <Play className="w-5 h-5 mr-2" />
+              Academia de IA
+            </a>
+          </div>
+        </div>
+      </section>
+
+      <div className="max-w-7xl mx-auto px-4 py-8">
+        <section className="mb-10">
+          <h3 className="text-2xl font-bold mb-6 text-gray-900">Categorías Populares</h3>
+          <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-8 gap-4">
+            {categories.map((category, index) => (
+              <div 
+                key={index}
+                className={`${category.color} p-4 rounded-xl text-center hover:scale-105 transition-transform cursor-pointer`}
+              >
+                <div className="text-2xl mb-2">{category.icon}</div>
+                <div className="text-xs font-medium leading-tight">{category.name}</div>
+                <div className="text-xs opacity-75 mt-1">{category.count} items</div>
+              </div>
+            ))}
+          </div>
+        </section>
+
+        <section>
+          <div className="flex items-center justify-between mb-6">
+            <h3 className="text-2xl font-bold text-gray-900">Descubre lo Mejor de Caldas</h3>
+            <div className="flex items-center space-x-2">
+              <a href="/marketplace" className="text-green-600 hover:text-green-700 font-medium flex items-center space-x-1">
+                <span>Ver todo</span>
+                <ArrowRight className="w-4 h-4" />
+              </a>
+            </div>
+          </div>
+
+          <div className="grid grid-cols-1 lg:grid-cols-2 xl:grid-cols-3 gap-6">
+            {feedPosts.map(post => (
+              <FeedPost key={post.id} post={post} />
+            ))}
+          </div>
+        </section>
+
+        <section className="mt-16 bg-gradient-to-r from-blue-600 to-purple-600 rounded-2xl p-8 text-white text-center">
+          <h3 className="text-3xl font-bold mb-4">¿Quieres Potenciar tu Negocio con IA?</h3>
+          <p className="text-blue-100 mb-6 max-w-2xl mx-auto">
+            Únete a nuestra Academia de Inteligencia Artificial y aprende a transformar tu emprendimiento. 
+            Más de 200 estudiantes ya están aplicando IA en sus negocios.
+          </p>
+          <a href="/dashboard" className="bg-white text-blue-600 px-8 py-3 rounded-lg font-semibold hover:bg-gray-100 transition-colors inline-flex items-center">
+            <BookOpen className="w-5 h-5 mr-2" />
+            Acceder a la Academia
+            <ArrowRight className="w-5 h-5 ml-2" />
+          </a>
+        </section>
+      </div>
+    </div>
+  );
+};
+
+export default HomePage;

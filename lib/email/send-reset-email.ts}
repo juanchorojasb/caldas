@@ -1,0 +1,80 @@
+import { Resend } from 'resend'
+
+const resend = new Resend(process.env.RESEND_API_KEY)
+
+export async function sendPasswordResetEmail(email: string, token: string) {
+  const resetUrl = `${process.env.NEXT_PUBLIC_APP_URL}/auth/reset-password?token=${token}`
+  
+  try {
+    const { data, error } = await resend.emails.send({
+      from: 'Academia Caldas <noreply@caldas.mercadolocal.co>',
+      to: [email],
+      subject: 'Restablecer contraseña - Academia Mercado Local Caldas',
+      html: `
+        <!DOCTYPE html>
+        <html>
+          <head>
+            <meta charset="utf-8">
+            <title>Restablecer contraseña</title>
+          </head>
+          <body style="font-family: Arial, sans-serif; line-height: 1.6; color: #333; max-width: 600px; margin: 0 auto; padding: 20px;">
+            <div style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); padding: 30px; text-align: center; border-radius: 10px 10px 0 0;">
+              <h1 style="color: white; margin: 0;">🎓 Academia Mercado Local Caldas</h1>
+              <p style="color: white; margin: 10px 0 0 0;">Norte de Caldas - Emprendimiento e Innovación</p>
+            </div>
+            
+            <div style="background: white; padding: 40px; border-radius: 0 0 10px 10px; box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);">
+              <h2 style="color: #4a5568; margin-bottom: 20px;">Restablecer tu contraseña</h2>
+              
+              <p>Hola,</p>
+              
+              <p>Recibimos una solicitud para restablecer la contraseña de tu cuenta en la Academia Mercado Local Caldas.</p>
+              
+              <div style="text-align: center; margin: 30px 0;">
+                <a href="${resetUrl}" 
+                   style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); 
+                          color: white; 
+                          padding: 15px 30px; 
+                          text-decoration: none; 
+                          border-radius: 25px; 
+                          display: inline-block;
+                          font-weight: bold;
+                          box-shadow: 0 4px 15px rgba(102, 126, 234, 0.4);">
+                  🔐 Restablecer Contraseña
+                </a>
+              </div>
+              
+              <p><strong>Este enlace expira en 30 minutos.</strong></p>
+              
+              <p>Si no solicitaste este cambio, puedes ignorar este email. Tu contraseña no será modificada.</p>
+              
+              <hr style="border: none; border-top: 1px solid #e2e8f0; margin: 30px 0;">
+              
+              <div style="text-align: center; color: #718096; font-size: 14px;">
+                <p><strong>Academia Mercado Local Caldas</strong></p>
+                <p>Neira • Aranzazu • Pácora • Salamina • Aguadas</p>
+                <p>Herramientas IA para emprendedores del Norte de Caldas</p>
+                <p style="margin-top: 20px;">
+                  <a href="https://caldas.mercadolocal.co" style="color: #667eea;">caldas.mercadolocal.co</a>
+                </p>
+              </div>
+            </div>
+          </body>
+        </html>
+      `
+    })
+
+    if (error) {
+      console.error('❌ Error sending email:', error)
+      return { success: false, error }
+    }
+
+    console.log('✅ Reset email sent successfully to:', email)
+    console.log('📧 Email ID:', data?.id)
+    return { success: true, data }
+
+  } catch (error) {
+    console.error('❌ Error in sendPasswordResetEmail:', error)
+    return { success: false, error }
+  }
+}
