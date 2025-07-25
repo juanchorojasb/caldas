@@ -33,13 +33,13 @@ export async function GET(request: NextRequest) {
       where: { userId }
     })
 
-    const completedLessons = lessonProgress.filter(p => p.isCompleted).length
-    const totalTimeSpent = lessonProgress.reduce((acc, p) => acc + (p.timeSpent || 0), 0)
+    const completedLessons = lessonProgress.filter((p: any) => p.isCompleted).length
+    const totalTimeSpent = lessonProgress.reduce((acc: number, p: any) => acc + (p.timeSpent || 0), 0)
 
     const stats = {
       courses: {
         enrolled: enrollments.length,
-        completed: enrollments.filter(e => e.completedAt).length
+        completed: enrollments.filter((e: any) => e.completedAt).length
       },
       lessons: {
         completed: completedLessons,

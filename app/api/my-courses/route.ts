@@ -32,7 +32,7 @@ export async function GET(request: NextRequest) {
       }
     })
 
-    const coursesWithProgress = enrollments.map(enrollment => ({
+    const coursesWithProgress = enrollments.map((enrollment: any) => ({
       id: enrollment.course.id,
       title: enrollment.course.title,
       description: enrollment.course.description,
