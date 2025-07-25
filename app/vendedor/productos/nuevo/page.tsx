@@ -1,117 +1,116 @@
-'use client'
+"use client";
 
-import React, { useState } from 'react';
-import { createProduct } from '../../../actions/products'
+import { useState } from "react";
+import { useUser } from "@clerk/nextjs";
+import { ImageUpload } from "@/components/ui/image-upload";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Textarea } from "@/components/ui/textarea";
 
 export default function NuevoProducto() {
-  const [formData, setFormData] = useState({
-    name: '',
-    description: '',
-    price: '',
-    categoryId: 'EMPRESARIAL'
-  });
+  const { user } = useUser();
+  const [images, setImages] = useState<string[]>([]);
   const [loading, setLoading] = useState(false);
 
-const handleSubmit = async (e: React.FormEvent) => {
-  e.preventDefault();
-  setLoading(true);
-  
-  try {
-    const formDataObj = new FormData();
-    formDataObj.append('name', formData.name);
-    formDataObj.append('description', formData.description);
-    formDataObj.append('price', formData.price);
-    formDataObj.append('categoryId', formData.categoryId);
+  const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
+    e.preventDefault();
+    setLoading(true);
     
-    console.log('📝 Form data:', Object.fromEntries(formDataObj));
-    
-    const result = await createProduct(formDataObj);
-    
-    console.log('📊 Result:', result);
-    
-    if (result.success) {
-      alert('¡Producto creado exitosamente!');
-      // Reset form
-      setFormData({ name: '', description: '', price: '', categoryId: 'EMPRESARIAL' });
-    } else {
-      alert(`Error: ${result.error}`);
+    try {
+      const formData = new FormData(e.currentTarget);
+      
+      // Agregar imágenes como JSON
+      formData.append('images', JSON.stringify(images));
+      
+      const response = await fetch('/api/vendedor/productos', {
+        method: 'POST',
+        body: formData,
+      });
+
+      if (response.ok) {
+        alert('¡Producto creado exitosamente!');
+        setImages([]);
+        e.currentTarget.reset();
+      } else {
+        const error = await response.text();
+        alert('Error creando producto: ' + error);
+      }
+    } catch (error) {
+      alert('Error: ' + error);
+    } finally {
+      setLoading(false);
     }
-  } catch (error) {
-    console.error('Error:', error);
-    alert('Error al crear producto');
-  } finally {
-    setLoading(false);
-  }
-};
-  const handleInputChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>) => {
-    const { name, value } = e.target;
-    setFormData(prev => ({ ...prev, [name]: value }));
   };
 
   return (
     <div className="max-w-2xl mx-auto p-6">
-      <h1 className="text-2xl font-bold mb-6">Nuevo Producto</h1>
+      <h1 className="text-2xl font-bold mb-6">🛍️ Crear Nuevo Producto</h1>
       
-<form action={createProduct} className="space-y-4">
+      <form onSubmit={handleSubmit} className="space-y-6">
         <div>
-          <label className="block text-sm font-medium mb-2">Nombre</label>
-          <input
-            type="text"
-            name="name"
-            value={formData.name}
-            onChange={handleInputChange}
-            required
-            className="w-full px-3 py-2 border rounded-lg"
-          />
+          <label className="block text-sm font-medium mb-2">Nombre del Producto</label>
+          <Input name="name" required placeholder="Ej: Café orgánico de Manizales" />
         </div>
 
         <div>
           <label className="block text-sm font-medium mb-2">Descripción</label>
-          <textarea
-            name="description"
-            value={formData.description}
-            onChange={handleInputChange}
-            required
+          <Textarea 
+            name="description" 
+            required 
             rows={4}
-            className="w-full px-3 py-2 border rounded-lg"
+            placeholder="Describe tu producto, ingredientes, proceso de elaboración..." 
           />
         </div>
 
         <div>
-          <label className="block text-sm font-medium mb-2">Precio</label>
-          <input
-            type="number"
-            name="price"
-            value={formData.price}
-            onChange={handleInputChange}
-            required
-            className="w-full px-3 py-2 border rounded-lg"
+          <label className="block text-sm font-medium mb-2">Precio (COP)</label>
+          <Input 
+            name="price" 
+            type="number" 
+            step="0.01" 
+            required 
+            placeholder="25000"
           />
         </div>
 
         <div>
           <label className="block text-sm font-medium mb-2">Categoría</label>
-          <select
-            name="categoryId"
-            value={formData.categoryId}
-            onChange={handleInputChange}
-            className="w-full px-3 py-2 border rounded-lg"
+          <select 
+            name="category" 
+            required
+            className="flex h-10 w-full rounded-md border border-gray-300 bg-white px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
           >
-            <option value="EMPRESARIAL">Empresarial</option>
-            <option value="HUMANA">Habilidades Humanas</option>
-            <option value="TECNICA">Técnica</option>
-            <option value="MARKETING">Marketing</option>
-            <option value="FINANZAS">Finanzas</option>
+            <option value="">Seleccionar categoría</option>
+            <option value="comida">🍽️ Comida</option>
+            <option value="bebidas">🥤 Bebidas</option>
+            <option value="ropa">👕 Ropa</option>
+            <option value="artesanias">🎨 Artesanías</option>
+            <option value="servicios">🔧 Servicios</option>
+            <option value="otros">📦 Otros</option>
           </select>
         </div>
 
-        <button
-          type="submit"
-          disabled={loading}
-          className="w-full bg-blue-600 text-white py-2 px-4 rounded-lg hover:bg-blue-700 disabled:opacity-50"
+        <div>
+          <label className="block text-sm font-medium mb-2">
+            📷 Imágenes del Producto ({images.length}/5)
+          </label>
+          <ImageUpload
+            value={images}
+            onChange={setImages}
+            maxFiles={5}
+          />
+          {images.length === 0 && (
+            <p className="text-sm text-red-500 mt-2">* Debes subir al menos 1 imagen</p>
+          )}
+        </div>
+
+        <Button 
+          type="submit" 
+          disabled={loading || images.length === 0}
+          className="w-full"
         >
-          {loading ? 'Creando...' : 'Crear Producto'}
-        </button>
+          {loading ? '⏳ Creando...' : '✨ Crear Producto'}
+        </Button>
       </form>
     </div>
   );

@@ -1,13 +1,9 @@
-// lib/prisma.ts - Configuración simplificada
-// Esto es un placeholder para futuras implementaciones con Prisma
-// Por ahora, la autenticación funciona con JWT sin base de datos
+import { PrismaClient } from '@prisma/client'
 
-export const prisma = {
-  // Placeholder para futura implementación
-  user: {
-    findUnique: async () => null,
-    create: async () => null,
-  }
+const globalForPrisma = globalThis as unknown as {
+  prisma: PrismaClient | undefined
 }
 
-console.log('Prisma placeholder loaded - Using JWT authentication for now')
+export const prisma = globalForPrisma.prisma ?? new PrismaClient()
+
+if (process.env.NODE_ENV !== 'production') globalForPrisma.prisma = prisma

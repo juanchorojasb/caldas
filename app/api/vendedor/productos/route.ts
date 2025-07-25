@@ -1,100 +1,61 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { auth, getCurrentUser } from '@/lib/auth';
-import { db } from '@/lib/db';
+import { auth } from '@clerk/nextjs';
+import { prisma } from '@/lib/prisma';
 
-// GET - Obtener productos del vendedor
-export async function GET(req: NextRequest) {
+export async function POST(request: NextRequest) {
   try {
-    const user = await getCurrentUser();
-    
-    console.log('🔍 GET Session debug:', {
-      hasUser: !!user,
-      userEmail: user?.email,
-      userId: user?.id
-    });
-    
-    if (!user) {
-      return NextResponse.json(
-        { error: 'No autorizado' },
-        { status: 401 }
-      );
+    const { userId } = auth();
+    if (!userId) {
+      return NextResponse.json({ error: 'No autorizado' }, { status: 401 });
     }
 
-    const products = await db.product.findMany({
-      where: {
-        vendorId: session.user.id
-      },
-      orderBy: {
-        createdAt: 'desc'
-      }
-    });
-
-    return NextResponse.json({
-      success: true,
-      products
-    });
-  } catch (error) {
-    console.error('Error al obtener productos:', error);
-    return NextResponse.json(
-      { error: 'Error al obtener productos' },
-      { status: 500 }
-    );
-  }
-}
-
-// POST - Crear nuevo producto
-export async function POST(req: NextRequest) {
-  try {
-    const user = await getCurrentUser();
+    const formData = await request.formData();
+    const name = formData.get('name') as string;
+    const description = formData.get('description') as string;
+    const price = formData.get('price') as string;
+    const category = formData.get('category') as string;
+    const imagesJson = formData.get('images') as string;
     
-    console.log('🔍 POST Session debug:', {
-      hasUser: !!user,
-      userEmail: user?.email,
-      userId: user?.id
-    });
+    // Parsear imágenes
+    const imageUrls = JSON.parse(imagesJson || '[]');
     
-    if (!user) {
-      return NextResponse.json(
-        { error: 'No autorizado' },
-        { status: 401 }
-      );
-    }
+    // Convertir array a JSON string para el campo Text
+    const imagesString = JSON.stringify(imageUrls);
 
-    const body = await req.json();
-    
-    // Generar slug desde el nombre
-    const slug = body.name
-      .toLowerCase()
-      .replace(/[^a-z0-9]+/g, '-')
-      .replace(/(^-|-$)/g, '');
-
-    const product = await db.product.create({
+    const product = await prisma.product.create({
       data: {
-        vendorId: user.id,
-        categoryId: body.categoryId || 'EMPRESARIAL',
-        name: body.name,
-        slug: `${slug}-${Date.now()}`,
-        description: body.description,
-        price: parseFloat(body.price),
-        comparePrice: body.comparePrice ? parseFloat(body.comparePrice) : null,
-        images: JSON.stringify(body.images || []),
-        stock: body.stock ? parseInt(body.stock) : null,
-        sku: body.sku || null,
-        weight: body.weight ? parseFloat(body.weight) : null,
-        dimensions: body.dimensions ? JSON.stringify(body.dimensions) : null,
-        tags: body.tags ? JSON.stringify(body.tags.split(',').map((t: string) => t.trim())) : null,
-      }
+        name,
+        description,
+        price: parseFloat(price),
+        category,
+        images: imagesString, // Guardamos como JSON string
+        vendorId: userId,
+        categoryId: category, // Por ahora usamos category como categoryId
+        slug: name.toLowerCase().replace(/\s+/g, '-').replace(/[^a-z0-9-]/g, ''),
+        isActive: true,
+      },
     });
 
-    return NextResponse.json({
-      success: true,
-      product
+    console.log('✅ Producto creado:', {
+      id: product.id,
+      name: product.name,
+      imageCount: imageUrls.length
     });
+
+    return NextResponse.json({ 
+      success: true,
+      product: {
+        id: product.id,
+        name: product.name,
+        price: product.price
+      }
+    }, { status: 201 });
+
   } catch (error) {
-    console.error('Error al crear producto:', error);
-    return NextResponse.json(
-      { error: 'Error al crear producto' },
-      { status: 500 }
-    );
+    console.error('❌ Error creando producto:', error);
+    return NextResponse.json({ 
+      error: 'Error interno del servidor',
+      details: error instanceof Error ? error.message : 'Error desconocido'
+    }, { status: 500 });
   }
 }
