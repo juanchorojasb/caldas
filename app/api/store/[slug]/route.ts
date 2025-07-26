@@ -4,12 +4,15 @@ import { stringToImages } from '@/lib/image-utils'
 
 export async function GET(
   request: NextRequest,
-  { params }: { params: { slug: string } }
+  context: { params: Promise<{ slug: string }> }
 ) {
   try {
+    // En Next.js 15, params es una Promise
+    const { slug } = await context.params
+
     const store = await prisma.store.findUnique({
       where: { 
-        slug: params.slug,
+        slug: slug,
         isActive: true 
       },
       include: {
@@ -23,7 +26,7 @@ export async function GET(
         products: {
           where: { isActive: true },
           orderBy: { createdAt: 'desc' },
-          take: 20 // Limitar a 20 productos por página
+          take: 20
         }
       }
     })
@@ -35,12 +38,18 @@ export async function GET(
       )
     }
 
-    // Procesar imágenes de productos
+    // Procesar imágenes de productos y convertir tipos
     const processedStore = {
       ...store,
       products: store.products.map(product => ({
-        ...product,
-        images: stringToImages(product.images)
+        id: product.id,
+        name: product.name,
+        description: product.description,
+        price: Number(product.price), // Convertir Decimal a number
+        images: stringToImages(product.images), // Convertir string a array
+        category: product.category,
+        isFeatured: product.isFeatured,
+        createdAt: product.createdAt
       }))
     }
 

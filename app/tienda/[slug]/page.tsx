@@ -6,9 +6,21 @@ import { StoreContact } from '@/components/store/StoreContact'
 import { stringToImages } from '@/lib/image-utils'
 
 interface StorePageProps {
-  params: {
+  params: Promise<{
     slug: string
-  }
+  }>
+}
+
+// Definir tipo para producto procesado con imágenes convertidas
+interface ProcessedProduct {
+  id: string
+  name: string
+  description?: string | null
+  price: number
+  images: string[] // Array después del procesamiento
+  category?: string | null
+  isFeatured?: boolean
+  createdAt: Date
 }
 
 async function getStore(slug: string) {
@@ -33,15 +45,24 @@ async function getStore(slug: string) {
       }
     })
     
-    // Procesar imágenes de productos
-    if (store?.products) {
-      store.products = store.products.map(product => ({
-        ...product,
-        images: stringToImages(product.images)
-      }))
-    }
+    if (!store) return null
     
-    return store
+    // Procesar imágenes de productos y convertir tipos correctamente
+    const processedProducts: ProcessedProduct[] = store.products.map(product => ({
+      id: product.id,
+      name: product.name,
+      description: product.description,
+      price: Number(product.price), // Convertir Decimal a number
+      images: stringToImages(product.images), // Convertir string a array
+      category: product.category,
+      isFeatured: product.isFeatured,
+      createdAt: product.createdAt
+    }))
+    
+    return {
+      ...store,
+      products: processedProducts
+    }
   } catch (error) {
     console.error('Error fetching store:', error)
     return null
@@ -49,7 +70,9 @@ async function getStore(slug: string) {
 }
 
 export default async function StorePage({ params }: StorePageProps) {
-  const store = await getStore(params.slug)
+  // En Next.js 15, params es una Promise
+  const { slug } = await params
+  const store = await getStore(slug)
 
   if (!store) {
     notFound()
@@ -57,15 +80,12 @@ export default async function StorePage({ params }: StorePageProps) {
 
   return (
     <div className="min-h-screen bg-gray-50">
-      {/* Header de la tienda */}
       <StoreHeader store={store} />
       
-      {/* Productos de la tienda */}
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
         <StoreProducts products={store.products} />
       </div>
       
-      {/* Información de contacto */}
       <StoreContact store={store} />
     </div>
   )
@@ -73,7 +93,8 @@ export default async function StorePage({ params }: StorePageProps) {
 
 // Generar metadata dinámica para SEO
 export async function generateMetadata({ params }: StorePageProps) {
-  const store = await getStore(params.slug)
+  const { slug } = await params
+  const store = await getStore(slug)
   
   if (!store) {
     return {

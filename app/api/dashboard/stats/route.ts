@@ -1,63 +1,14 @@
-import { NextRequest, NextResponse } from "next/server"
-import { auth } from "@/lib/auth"
-import { db } from "@/lib/db"
+import { NextResponse } from 'next/server'
 
-export async function GET(request: NextRequest) {
-  try {
-    const session = await auth()
-    
-    if (!session || !session.user) {
-      return NextResponse.json(
-        { success: false, message: "No autorizado" },
-        { status: 401 }
-      )
+// Stub temporal - Estadísticas en desarrollo  
+export async function GET() {
+  return NextResponse.json({ 
+    message: 'Estadísticas en desarrollo',
+    stats: {
+      totalUsers: 0,
+      totalProducts: 0,
+      totalStores: 0,
+      totalRevenue: 0
     }
-
-    const userId = session.user.id
-
-    // Estadísticas básicas
-    const enrollments = await db.enrollment.findMany({
-      where: { userId },
-      include: {
-        course: {
-          select: {
-            id: true,
-            title: true,
-            thumbnail: true
-          }
-        }
-      }
-    })
-
-    const lessonProgress = await db.lessonProgress.findMany({
-      where: { userId }
-    })
-
-    const completedLessons = lessonProgress.filter((p: any) => p.isCompleted).length
-    const totalTimeSpent = lessonProgress.reduce((acc: number, p: any) => acc + (p.timeSpent || 0), 0)
-
-    const stats = {
-      courses: {
-        enrolled: enrollments.length,
-        completed: enrollments.filter((e: any) => e.completedAt).length
-      },
-      lessons: {
-        completed: completedLessons,
-        total: lessonProgress.length
-      },
-      timeSpent: totalTimeSpent,
-      recentCourses: enrollments.slice(0, 3)
-    }
-
-    return NextResponse.json({
-      success: true,
-      stats
-    })
-  } catch (error) {
-    console.error("Error fetching dashboard stats:", error)
-    return NextResponse.json(
-      { success: false, message: "Error interno" },
-      { status: 500 }
-    )
-  }
+  })
 }
