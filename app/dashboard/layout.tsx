@@ -31,7 +31,7 @@ export default function DashboardLayout({
   const navigation = [
     { name: 'Dashboard', href: '/dashboard', icon: Home },
     { name: 'Mis Cursos', href: '/dashboard/courses', icon: GraduationCap },
-    { name: 'Asistente IA', href: '/dashboard/ai', icon: Brain },
+    { name: 'Asistente IA', href: '/herramientas', icon: Brain },
     { name: 'Perfil', href: '/dashboard/profile', icon: User },
     { name: 'Configuración', href: '/dashboard/settings', icon: Settings },
   ]
@@ -49,7 +49,7 @@ export default function DashboardLayout({
             <X className="h-6 w-6" />
           </button>
         </div>
-        
+
         <nav className="mt-8">
           {navigation.map((item) => {
             const isActive = pathname === item.href
