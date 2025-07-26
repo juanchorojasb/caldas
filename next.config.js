@@ -1,10 +1,8 @@
 /** @type {import('next').NextConfig} */
 const nextConfig = {
-  serverExternalPackages: ['bcryptjs'],
-  images: {
-    domains: ['localhost']
+  experimental: {
+    allowedDevOrigins: ['mercadolocal.co', 'www.mercadolocal.co', 'dev.mercadolocal.co']
   }
 }
 
 module.exports = nextConfig
-

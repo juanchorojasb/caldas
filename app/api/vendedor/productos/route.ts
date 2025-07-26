@@ -1,10 +1,10 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { auth } from '@clerk/nextjs';
+import { auth } from '@clerk/nextjs/server';
 import { prisma } from '@/lib/prisma';
 
 export async function POST(request: NextRequest) {
   try {
-    const { userId } = auth();
+    const { userId } = await auth();
     if (!userId) {
       return NextResponse.json({ error: 'No autorizado' }, { status: 401 });
     }
@@ -18,21 +18,26 @@ export async function POST(request: NextRequest) {
     
     // Parsear imágenes
     const imageUrls = JSON.parse(imagesJson || '[]');
-    
-    // Convertir array a JSON string para el campo Text
     const imagesString = JSON.stringify(imageUrls);
+
+    // Crear slug simple
+    const slug = name.toLowerCase()
+      .replace(/[^a-z0-9\s]/g, '')
+      .replace(/\s+/g, '-')
+      .substring(0, 50) + '-' + Date.now();
 
     const product = await prisma.product.create({
       data: {
         name,
         description,
         price: parseFloat(price),
-        category,
-        images: imagesString, // Guardamos como JSON string
+        images: imagesString,
         vendorId: userId,
-        categoryId: category, // Por ahora usamos category como categoryId
-        slug: name.toLowerCase().replace(/\s+/g, '-').replace(/[^a-z0-9-]/g, ''),
+        categoryId: category, // Usamos category como categoryId por ahora
+        slug,
         isActive: true,
+        isFeatured: false,
+        stock: 100, // Default stock
       },
     });
 

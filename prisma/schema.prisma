@@ -266,18 +266,15 @@ model Product {
   sku          String?  @unique
   weight       Decimal? @db.Decimal(8, 2) // Para envíos
   dimensions   String?  @db.Text // JSON con dimensiones
-  tags         String?  @db.Text // JSON array
-  likes        Int      @default(0) // Para funcionalidad tipo Instagram
-  views        Int      @default(0)
-  sales        Int      @default(0)
-  rating       Decimal  @default(0) @db.Decimal(3, 2)
-  reviewCount  Int      @default(0)
+  tags         String?  @db.Text // JSON array de tags
+  metaTitle    String?
+  metaDescription String? @db.Text
   createdAt    DateTime @default(now())
   updatedAt    DateTime @updatedAt
 
-  // Relaciones
-  vendor     VendorProfile @relation(fields: [vendorId], references: [id], onDelete: Cascade)
-  category   Category      @relation(fields: [categoryId], references: [id])
+  // Relaciones agregadas
+  vendor     VendorProfile @relation(fields: [vendorId], references: [id], onDelete: Cascade, map: "product_vendor_fkey")
+  category   Category      @relation(fields: [categoryId], references: [id], map: "product_category_fkey")
   orderItems OrderItem[]
   reviews    Review[]
   favorites  Favorite[]
