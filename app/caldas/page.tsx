@@ -5,33 +5,35 @@ import Link from 'next/link';
 
 export default function CaldrasPage() {
   const [formData, setFormData] = useState({
-    // Información personal
+    // Información personal (OBLIGATORIOS)
     nombre: '',
     email: '',
     telefono: '',
     municipio: '',
     
-    // Información del emprendimiento
+    // Información del emprendimiento (OBLIGATORIOS)
     nombreNegocio: '',
+    nombreTienda: '', // NUEVO CAMPO OBLIGATORIO
     etapaDesarrollo: '',
     sectorcategoria: '',
+    
+    // Información adicional (OPCIONALES)
     tiempoExperiencia: '',
     numeroEmpleados: '',
-    
-    // Historia y presencia digital
     historiaMarca: '',
-    sitioWeb: '',
+    
+    // Presencia digital (OPCIONALES)
+    sitioWebOficial: '', // Renombrado para claridad
     facebook: '',
     instagram: '',
     tiktok: '',
-    linkedin: '',
     
-    // Desafíos y objetivos
+    // Desafíos y objetivos (OBLIGATORIOS)
     principalesDesafios: '',
     objetivos6meses: '',
-    
-    // Expectativas del programa
     expectativasPrograma: '',
+    
+    // Términos (OBLIGATORIO)
     aceptaTerminos: false
   });
 
@@ -64,10 +66,43 @@ export default function CaldrasPage() {
     'Otro'
   ];
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    alert('¡Inscripción exitosa! Te contactaremos en las próximas 24 horas.');
-    console.log('Formulario completo:', formData);
+    
+    try {
+      const response = await fetch('/api/caldas', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(formData)
+      });
+
+      const result = await response.json();
+
+      if (result.success) {
+        alert(`¡Inscripción registrada exitosamente! 
+
+Tu tienda será: mercadolocal.co/tienda/${formData.nombreTienda}
+
+Te contactaremos en las próximas 24 horas.`);
+        
+        // Limpiar formulario
+        setFormData({
+          nombre: '', email: '', telefono: '', municipio: '',
+          nombreNegocio: '', nombreTienda: '', etapaDesarrollo: '', sectorcategoria: '',
+          tiempoExperiencia: '', numeroEmpleados: '', historiaMarca: '',
+          sitioWebOficial: '', facebook: '', instagram: '', tiktok: '',
+          principalesDesafios: '', objetivos6meses: '', expectativasPrograma: '',
+          aceptaTerminos: false
+        });
+      } else {
+        alert('Error al enviar la inscripción. Por favor intenta nuevamente.');
+      }
+    } catch (error) {
+      console.error('Error:', error);
+      alert('Error de conexión. Por favor intenta nuevamente.');
+    }
   };
 
   const updateField = (field: string, value: string | boolean) => {
@@ -331,6 +366,23 @@ export default function CaldrasPage() {
 
                   <div>
                     <label className="block text-sm font-medium text-gray-700 mb-2">
+                      Nombre de tu Tienda en MercadoLocal *
+                    </label>
+                    <input
+                      type="text"
+                      required
+                      value={formData.nombreTienda}
+                      onChange={(e) => updateField('nombreTienda', e.target.value.toLowerCase().replace(/[^a-z0-9-]/g, '-').replace(/-+/g, '-'))}
+                      className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500"
+                      placeholder="mi-tienda-caldense"
+                    />
+                    <p className="text-sm text-gray-500 mt-1">
+                      Tu tienda será: <strong>mercadolocal.co/tienda/{formData.nombreTienda || 'tu-tienda'}</strong>
+                    </p>
+                  </div>
+
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-2">
                       Etapa de Desarrollo *
                     </label>
                     <select
@@ -362,114 +414,121 @@ export default function CaldrasPage() {
                       ))}
                     </select>
                   </div>
-
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-2">
-                      Tiempo en el Negocio
-                    </label>
-                    <select
-                      value={formData.tiempoExperiencia}
-                      onChange={(e) => updateField('tiempoExperiencia', e.target.value)}
-                      className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500"
-                    >
-                      <option value="">Selecciona</option>
-                      <option value="Menos de 6 meses">Menos de 6 meses</option>
-                      <option value="6 meses - 1 año">6 meses - 1 año</option>
-                      <option value="1 - 2 años">1 - 2 años</option>
-                      <option value="2 - 5 años">2 - 5 años</option>
-                      <option value="Más de 5 años">Más de 5 años</option>
-                    </select>
-                  </div>
-
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-2">
-                      Número de Empleados
-                    </label>
-                    <select
-                      value={formData.numeroEmpleados}
-                      onChange={(e) => updateField('numeroEmpleados', e.target.value)}
-                      className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500"
-                    >
-                      <option value="">Selecciona</option>
-                      <option value="Solo yo">Solo yo</option>
-                      <option value="2-5 empleados">2-5 empleados</option>
-                      <option value="6-10 empleados">6-10 empleados</option>
-                      <option value="11-20 empleados">11-20 empleados</option>
-                      <option value="Más de 20">Más de 20</option>
-                    </select>
-                  </div>
                 </div>
 
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-2">
-                    Historia de tu Marca *
-                  </label>
-                  <textarea
-                    required
-                    value={formData.historiaMarca}
-                    onChange={(e) => updateField('historiaMarca', e.target.value)}
-                    rows={4}
-                    className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500"
-                    placeholder="Cuéntanos cómo nació tu idea, qué problema resuelve, qué te motivó a emprender..."
-                  />
+                {/* Campos opcionales */}
+                <div className="bg-blue-50 p-6 rounded-lg">
+                  <h4 className="text-lg font-semibold text-blue-800 mb-4">📋 Información Adicional (Opcional)</h4>
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700 mb-2">
+                        Tiempo en el Negocio
+                      </label>
+                      <select
+                        value={formData.tiempoExperiencia}
+                        onChange={(e) => updateField('tiempoExperiencia', e.target.value)}
+                        className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500"
+                      >
+                        <option value="">Selecciona (opcional)</option>
+                        <option value="Menos de 6 meses">Menos de 6 meses</option>
+                        <option value="6 meses - 1 año">6 meses - 1 año</option>
+                        <option value="1 - 2 años">1 - 2 años</option>
+                        <option value="2 - 5 años">2 - 5 años</option>
+                        <option value="Más de 5 años">Más de 5 años</option>
+                      </select>
+                    </div>
+
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700 mb-2">
+                        Número de Empleados
+                      </label>
+                      <select
+                        value={formData.numeroEmpleados}
+                        onChange={(e) => updateField('numeroEmpleados', e.target.value)}
+                        className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500"
+                      >
+                        <option value="">Selecciona (opcional)</option>
+                        <option value="Solo yo">Solo yo</option>
+                        <option value="2-5 empleados">2-5 empleados</option>
+                        <option value="6-10 empleados">6-10 empleados</option>
+                        <option value="11-20 empleados">11-20 empleados</option>
+                        <option value="Más de 20">Más de 20</option>
+                      </select>
+                    </div>
+                  </div>
+
+                  <div className="mt-6">
+                    <label className="block text-sm font-medium text-gray-700 mb-2">
+                      Historia de tu Marca
+                    </label>
+                    <textarea
+                      value={formData.historiaMarca}
+                      onChange={(e) => updateField('historiaMarca', e.target.value)}
+                      rows={3}
+                      className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500"
+                      placeholder="Cuéntanos cómo nació tu idea, qué problema resuelve... (opcional)"
+                    />
+                  </div>
                 </div>
               </div>
             </div>
 
             {/* Presencia Digital */}
             <div>
-              <h3 className="text-xl font-semibold mb-4 text-purple-600">🌐 Presencia Digital</h3>
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-2">
-                    Sitio Web
-                  </label>
-                  <input
-                    type="url"
-                    value={formData.sitioWeb}
-                    onChange={(e) => updateField('sitioWeb', e.target.value)}
-                    className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500"
-                    placeholder="https://tusitio.com"
-                  />
-                </div>
+              <h3 className="text-xl font-semibold mb-4 text-purple-600">🌐 Presencia Digital (Opcional)</h3>
+              <div className="bg-purple-50 p-6 rounded-lg">
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-2">
+                      Sitio Web Oficial
+                    </label>
+                    <input
+                      type="url"
+                      value={formData.sitioWebOficial}
+                      onChange={(e) => updateField('sitioWebOficial', e.target.value)}
+                      className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500"
+                      placeholder="https://tusitio.com (opcional)"
+                    />
+                  </div>
 
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-2">
-                    Facebook
-                  </label>
-                  <input
-                    type="text"
-                    value={formData.facebook}
-                    onChange={(e) => updateField('facebook', e.target.value)}
-                    className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500"
-                    placeholder="@tunegocio"
-                  />
-                </div>
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-2">
+                      Facebook
+                    </label>
+                    <input
+                      type="text"
+                      value={formData.facebook}
+                      onChange={(e) => updateField('facebook', e.target.value)}
+                      className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500"
+                      placeholder="@tunegocio (opcional)"
+                    />
+                  </div>
 
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-2">
-                    Instagram
-                  </label>
-                  <input
-                    type="text"
-                    value={formData.instagram}
-                    onChange={(e) => updateField('instagram', e.target.value)}
-                    className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500"
-                    placeholder="@tunegocio"
-                  />
-                </div>
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-2">
+                      Instagram
+                    </label>
+                    <input
+                      type="text"
+                      value={formData.instagram}
+                      onChange={(e) => updateField('instagram', e.target.value)}
+                      className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500"
+                      placeholder="@tunegocio (opcional)"
+                    />
+                  </div>
 
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-2">
-                    TikTok
-                  </label>
-                  <input
-                    type="text"
-                    value={formData.tiktok}
-                    onChange={(e) => updateField('tiktok', e.target.value)}
-                    className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500"
-                    placeholder="@tunegocio"
-                  />
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-2">
+                      TikTok
+                    </label>
+                    <input
+                      type="text"
+                      value={formData.tiktok}
+                      onChange={(e) => updateField('tiktok', e.target.value)}
+                      className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500"
+                      placeholder="@tunegocio (opcional)"
+                    />
+                  </div>
                 </div>
               </div>
             </div>
@@ -556,7 +615,8 @@ export default function CaldrasPage() {
             <div className="text-center pt-6">
               <button
                 type="submit"
-                className="bg-gradient-to-r from-blue-600 via-purple-600 to-green-600 text-white px-12 py-4 rounded-lg font-bold text-lg hover:from-blue-700 hover:via-purple-700 hover:to-green-700 transition-all transform hover:scale-105 shadow-lg"
+                disabled={!formData.aceptaTerminos}
+                className="bg-gradient-to-r from-blue-600 via-purple-600 to-green-600 text-white px-12 py-4 rounded-lg font-bold text-lg hover:from-blue-700 hover:via-purple-700 hover:to-green-700 transition-all transform hover:scale-105 shadow-lg disabled:opacity-50 disabled:cursor-not-allowed"
               >
                 🚀 Inscribirme al Programa Norte de Caldas
               </button>
