@@ -1,0 +1,21 @@
+model Product {
+  id          String   @id @default(cuid())
+  name        String
+  description String?
+  price       Decimal
+  category    String?
+  images      String[]
+  isActive    Boolean  @default(true)
+  isFeatured  Boolean  @default(false) // Para productos destacados
+  
+  // Relación con tienda
+  storeId     String?
+  store       Store?   @relation("StoreProducts", fields: [storeId], references: [id])
+  
+  // Relación con usuario (vendedor)
+  userId      String
+  user        User     @relation(fields: [userId], references: [id])
+  
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+}

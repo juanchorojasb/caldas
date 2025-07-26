@@ -1,0 +1,32 @@
+model User {
+  id            String    @id @default(cuid())
+  clerkId       String    @unique
+  email         String    @unique
+  firstName     String?
+  lastName      String?
+  
+  // Información adicional del formulario optimizado
+  telefono      String?
+  municipio     String?
+  nombreNegocio String?
+  nombreTienda  String?   // Para generar slug de tienda
+  etapa         String?
+  sector        String?
+  desafios      String?
+  objetivos     String?
+  
+  // Información opcional
+  historia      String?
+  sitioWeb      String?
+  redesSociales String?
+  tiempoExperiencia String?
+  empleados     String?
+  
+  // Relaciones
+  store         Store?           // Relación con tienda
+  products      Product[]
+  subscriptions UserSubscription[]
+  
+  createdAt     DateTime  @default(now())
+  updatedAt     DateTime  @updatedAt
+}

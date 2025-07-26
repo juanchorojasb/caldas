@@ -1,0 +1,535 @@
+// prisma/schema.prisma - COMPLETO: Academia + Marketplace
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "mysql"
+  url      = env("DATABASE_URL")
+}
+
+// ===== USUARIOS Y AUTENTICACIÓN =====
+model User {
+  id         String   @id @default(cuid())
+  email      String   @unique
+  password   String?
+  name       String?
+  phone      String?
+  avatar     String?
+  isVerified Boolean  @default(false)
+  role       UserRole @default(USER)
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @updatedAt
+
+  // Relaciones ACADEMIA
+  accounts       Account[]
+  sessions       Session[]
+  enrollments    Enrollment[]
+  lessonProgress LessonProgress[]
+
+  // Relaciones MARKETPLACE
+  vendorProfile            VendorProfile?
+  orders                   Order[]
+  reviews                  Review[]
+  favorites                Favorite[]
+  marketplaceSubscriptions MarketplaceSubscription[]
+  PasswordReset            PasswordReset[]
+
+  @@map("users")
+}
+
+model Account {
+  id                String  @id @default(cuid())
+  userId            String
+  type              String
+  provider          String
+  providerAccountId String
+  refresh_token     String? @db.Text
+  access_token      String? @db.Text
+  expires_at        Int?
+  token_type        String?
+  scope             String?
+  id_token          String? @db.Text
+  session_state     String?
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([provider, providerAccountId])
+  @@map("accounts")
+}
+
+model Session {
+  id           String   @id @default(cuid())
+  sessionToken String   @unique
+  userId       String
+  expires      DateTime
+  user         User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@map("sessions")
+}
+
+model VerificationToken {
+  identifier String
+  token      String   @unique
+  expires    DateTime
+
+  @@unique([identifier, token])
+  @@map("verification_tokens")
+}
+
+enum UserRole {
+  USER
+  VENDOR
+  ADMIN
+}
+
+// ===== ACADEMIA =====
+model Course {
+  id          String   @id @default(cuid())
+  title       String
+  description String   @db.Text
+  slug        String   @unique
+  level       Int      @default(1)
+  isActive    Boolean  @default(true)
+  thumbnail   String?
+  duration    Int? // Duración en minutos
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  lessons     Lesson[]
+  enrollments Enrollment[]
+
+  @@map("courses")
+}
+
+model Lesson {
+  id          String   @id @default(cuid())
+  courseId    String
+  title       String
+  description String?  @db.Text
+  content     String?  @db.Text
+  videoUrl    String?
+  resources   String?  @db.Text // JSON de recursos adicionales
+  order       Int
+  duration    Int? // Duración en minutos
+  isActive    Boolean  @default(true)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  course   Course           @relation(fields: [courseId], references: [id], onDelete: Cascade)
+  progress LessonProgress[]
+
+  @@map("lessons")
+}
+
+model Enrollment {
+  id          String    @id @default(cuid())
+  userId      String
+  courseId    String
+  enrolledAt  DateTime  @default(now())
+  completedAt DateTime?
+  progress    Int       @default(0) // Porcentaje de completado
+
+  user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+  course Course @relation(fields: [courseId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, courseId])
+  @@map("enrollments")
+}
+
+model LessonProgress {
+  id          String    @id @default(cuid())
+  userId      String
+  lessonId    String
+  isCompleted Boolean   @default(false)
+  completedAt DateTime?
+  timeSpent   Int       @default(0) // Tiempo en minutos
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+
+  user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+  lesson Lesson @relation(fields: [lessonId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, lessonId])
+  @@map("lesson_progress")
+}
+
+// ===== MARKETPLACE =====
+
+// VENDEDORES
+model VendorProfile {
+  id           String   @id @default(cuid())
+  userId       String   @unique
+  businessName String
+  slug         String   @unique // Para URL amigable
+  description  String?  @db.Text
+  logo         String?
+  banner       String?
+  address      String?
+  city         String
+  municipality String
+  whatsapp     String?
+  facebook     String?
+  instagram    String?
+  website      String?
+  isActive     Boolean  @default(true)
+  isVerified   Boolean  @default(false)
+  rating       Decimal  @default(0) @db.Decimal(3, 2)
+  totalSales   Int      @default(0)
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+
+  // Relaciones
+  user     User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  products Product[]
+  services Service[]
+  orders   Order[]
+
+  @@map("vendor_profiles")
+}
+
+// SUSCRIPCIONES MARKETPLACE
+model MarketplaceSubscription {
+  id              String             @id @default(cuid())
+  userId          String
+  planType        PlanType
+  amount          Int
+  currency        String             @default("COP")
+  status          SubscriptionStatus
+  startDate       DateTime
+  endDate         DateTime
+  paymentMethod   String?
+  transactionId   String?
+  includesAcademy Boolean            @default(false)
+  includesAds     Boolean            @default(false)
+  features        String?            @db.Text // JSON de features incluidas
+  createdAt       DateTime           @default(now())
+  updatedAt       DateTime           @updatedAt
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@map("marketplace_subscriptions")
+}
+
+enum PlanType {
+  BASIC // $25.000 - Solo marketplace
+  COMPLETE // $70.000 - Marketplace + Academia
+  PREMIUM // $120.000 - Todo + Publicidad
+}
+
+enum SubscriptionStatus {
+  ACTIVE
+  EXPIRED
+  CANCELLED
+  PENDING
+  TRIAL
+}
+
+// CATEGORÍAS
+model Category {
+  id          String   @id @default(cuid())
+  name        String   @unique
+  slug        String   @unique
+  description String?
+  icon        String?
+  color       String?
+  isActive    Boolean  @default(true)
+  order       Int      @default(0)
+  parentId    String? // Para subcategorías
+  createdAt   DateTime @default(now())
+
+  // Self-relation para subcategorías
+  parent   Category?  @relation("CategoryHierarchy", fields: [parentId], references: [id])
+  children Category[] @relation("CategoryHierarchy")
+
+  products Product[]
+  services Service[]
+
+  @@map("categories")
+}
+
+// PRODUCTOS
+model Product {
+  id           String   @id @default(cuid())
+  vendorId     String
+  categoryId   String
+  name         String
+  slug         String   @unique // Para SEO
+  description  String   @db.Text
+  price        Decimal  @db.Decimal(10, 2)
+  comparePrice Decimal? @db.Decimal(10, 2) // Precio antes del descuento
+  images       String   @db.Text // JSON array de URLs
+  isActive     Boolean  @default(true)
+  isFeatured   Boolean  @default(false) // Para plan premium
+  stock        Int?
+  sku          String?  @unique
+  weight       Decimal? @db.Decimal(8, 2) // Para envíos
+  dimensions   String?  @db.Text // JSON con dimensiones
+  tags         String?  @db.Text // JSON array de tags
+  metaTitle    String?
+  metaDescription String? @db.Text
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+
+  // Relaciones agregadas
+  vendor     VendorProfile @relation(fields: [vendorId], references: [id], onDelete: Cascade, map: "product_vendor_fkey")
+  category   Category      @relation(fields: [categoryId], references: [id], map: "product_category_fkey")
+  orderItems OrderItem[]
+  reviews    Review[]
+  favorites  Favorite[]
+
+  @@map("products")
+}
+
+// SERVICIOS
+model Service {
+  id           String    @id @default(cuid())
+  vendorId     String
+  categoryId   String
+  name         String
+  slug         String    @unique // Para SEO
+  description  String    @db.Text
+  price        Decimal?  @db.Decimal(10, 2) // Precio base o por hora
+  priceType    PriceType @default(FIXED)
+  duration     Int? // En minutos
+  images       String    @db.Text // JSON array
+  isActive     Boolean   @default(true)
+  isFeatured   Boolean   @default(false)
+  availability String?   @db.Text // JSON horarios
+  location     String? // Cobertura del servicio
+  requirements String?   @db.Text // Requisitos del servicio
+  tags         String?   @db.Text
+  likes        Int       @default(0)
+  views        Int       @default(0)
+  bookings     Int       @default(0)
+  rating       Decimal   @default(0) @db.Decimal(3, 2)
+  reviewCount  Int       @default(0)
+  createdAt    DateTime  @default(now())
+  updatedAt    DateTime  @updatedAt
+
+  // Relaciones
+  vendor       VendorProfile @relation(fields: [vendorId], references: [id], onDelete: Cascade)
+  category     Category      @relation(fields: [categoryId], references: [id])
+  appointments Appointment[]
+  reviews      Review[]
+  favorites    Favorite[]
+
+  @@map("services")
+}
+
+enum PriceType {
+  FIXED // Precio fijo
+  HOURLY // Por hora
+  DAILY // Por día
+  QUOTE // Cotizar
+}
+
+// CITAS/RESERVAS
+model Appointment {
+  id            String            @id @default(cuid())
+  serviceId     String
+  userId        String
+  vendorId      String
+  date          DateTime
+  startTime     String // HH:MM
+  endTime       String? // HH:MM
+  duration      Int // En minutos
+  status        AppointmentStatus @default(PENDING)
+  notes         String?           @db.Text
+  customerNotes String?           @db.Text
+  price         Decimal?          @db.Decimal(10, 2)
+  createdAt     DateTime          @default(now())
+  updatedAt     DateTime          @updatedAt
+
+  service Service @relation(fields: [serviceId], references: [id])
+
+  @@map("appointments")
+}
+
+enum AppointmentStatus {
+  PENDING
+  CONFIRMED
+  IN_PROGRESS
+  COMPLETED
+  CANCELLED
+  NO_SHOW
+}
+
+// PEDIDOS
+model Order {
+  id                String        @id @default(cuid())
+  userId            String
+  vendorId          String
+  orderNumber       String        @unique
+  status            OrderStatus   @default(PENDING)
+  subtotal          Decimal       @db.Decimal(10, 2)
+  shipping          Decimal       @default(0) @db.Decimal(10, 2)
+  tax               Decimal       @default(0) @db.Decimal(10, 2)
+  discount          Decimal       @default(0) @db.Decimal(10, 2)
+  total             Decimal       @db.Decimal(10, 2)
+  paymentMethod     String?
+  paymentStatus     PaymentStatus @default(PENDING)
+  transactionId     String?
+  shippingAddress   String?       @db.Text // JSON de dirección
+  customerNotes     String?       @db.Text
+  vendorNotes       String?       @db.Text
+  estimatedDelivery DateTime?
+  deliveredAt       DateTime?
+  createdAt         DateTime      @default(now())
+  updatedAt         DateTime      @updatedAt
+
+  // Relaciones
+  user   User          @relation(fields: [userId], references: [id])
+  vendor VendorProfile @relation(fields: [vendorId], references: [id])
+  items  OrderItem[]
+
+  @@map("orders")
+}
+
+model OrderItem {
+  id        String  @id @default(cuid())
+  orderId   String
+  productId String
+  quantity  Int
+  price     Decimal @db.Decimal(10, 2)
+  total     Decimal @db.Decimal(10, 2)
+
+  order   Order   @relation(fields: [orderId], references: [id], onDelete: Cascade)
+  product Product @relation(fields: [productId], references: [id])
+
+  @@map("order_items")
+}
+
+enum OrderStatus {
+  PENDING
+  CONFIRMED
+  PREPARING
+  READY
+  SHIPPED
+  DELIVERED
+  CANCELLED
+  REFUNDED
+}
+
+enum PaymentStatus {
+  PENDING
+  PAID
+  FAILED
+  REFUNDED
+  PARTIAL
+}
+
+// RESEÑAS
+model Review {
+  id           String   @id @default(cuid())
+  userId       String
+  productId    String?
+  serviceId    String?
+  orderId      String?
+  rating       Int // 1-5 estrellas
+  title        String?
+  comment      String?  @db.Text
+  images       String?  @db.Text // JSON array de imágenes
+  isVerified   Boolean  @default(false) // Si es compra verificada
+  isActive     Boolean  @default(true)
+  helpfulCount Int      @default(0)
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+
+  user    User     @relation(fields: [userId], references: [id])
+  product Product? @relation(fields: [productId], references: [id])
+  service Service? @relation(fields: [serviceId], references: [id])
+
+  @@map("reviews")
+}
+
+// FAVORITOS (Para funcionalidad tipo Instagram)
+model Favorite {
+  id        String   @id @default(cuid())
+  userId    String
+  productId String?
+  serviceId String?
+  createdAt DateTime @default(now())
+
+  user    User     @relation(fields: [userId], references: [id])
+  product Product? @relation(fields: [productId], references: [id])
+  service Service? @relation(fields: [serviceId], references: [id])
+
+  @@unique([userId, productId])
+  @@unique([userId, serviceId])
+  @@map("favorites")
+}
+
+// CONFIGURACIONES
+model Setting {
+  id          String   @id @default(cuid())
+  key         String   @unique
+  value       String   @db.Text
+  type        String   @default("string")
+  description String?
+  category    String?  @default("general")
+  isPublic    Boolean  @default(false)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  @@map("settings")
+}
+
+// NOTIFICACIONES
+model Notification {
+  id        String   @id @default(cuid())
+  userId    String
+  title     String
+  message   String   @db.Text
+  type      String   @default("info") // info, success, warning, error
+  isRead    Boolean  @default(false)
+  url       String?
+  createdAt DateTime @default(now())
+
+  @@map("notifications")
+}
+
+// LOGS DE ACTIVIDAD
+model ActivityLog {
+  id          String   @id @default(cuid())
+  userId      String?
+  action      String
+  description String   @db.Text
+  metadata    String?  @db.Text // JSON con datos adicionales
+  ipAddress   String?
+  userAgent   String?  @db.Text
+  createdAt   DateTime @default(now())
+
+  @@map("activity_logs")
+}
+
+// PASSWORD RESET
+model PasswordReset {
+  id        String    @id @default(cuid())
+  userId    String
+  token     String    @unique
+  expiresAt DateTime
+  usedAt    DateTime?
+  createdAt DateTime  @default(now())
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@map("password_resets")
+}
+model UserSubscription {
+  id            String   @id @default(cuid())
+  userId        String   @unique // Clerk user ID
+  email         String
+  name          String?
+  selectedPlan  String   // plan_a, plan_b, plan_c
+  paymentStatus String   @default("pending") // pending, sent, approved, rejected
+  paymentMethod String?
+  paymentDate   DateTime?
+  approvedAt    DateTime?
+  approvedBy    String?
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+  
+  @@map("user_subscriptions")
+}
