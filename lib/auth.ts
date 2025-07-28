@@ -1,130 +1,91 @@
-import NextAuth from "next-auth"
-import CredentialsProvider from "next-auth/providers/credentials"
-import bcrypt from "bcryptjs"
-import { db } from "@/lib/db"
+import NextAuth from 'next-auth'
+import { PrismaAdapter } from '@auth/prisma-adapter'
+import GoogleProvider from 'next-auth/providers/google'
+import { prisma } from '@/lib/prisma'
 
-const authConfig = {
+export const {
+  handlers,
+  auth,
+  signIn,
+  signOut
+} = NextAuth({
+  adapter: PrismaAdapter(prisma),
   providers: [
-    CredentialsProvider({
-      name: 'credentials',
-      credentials: {
-        email: { label: 'Email', type: 'email' },
-        password: { label: 'Password', type: 'password' }
-      },
-      async authorize(credentials) {
-        console.log('🔍 AUTHORIZE CALLED - Email:', credentials?.email)
-        
-        if (!credentials?.email || !credentials?.password) {
-          console.log('❌ Missing credentials')
-          return null
-        }
-
-        try {
-          const user = await db.user.findUnique({
-            where: {
-              email: (credentials.email as string).toLowerCase()
-            }
-          })
-
-          if (!user || !user.password) {
-            console.log('❌ User not found or no password')
-            return null
-          }
-
-          const passwordMatch = await bcrypt.compare(
-            credentials.password as string,
-            user.password
-          )
-
-          if (!passwordMatch) {
-            console.log('❌ Password mismatch')
-            return null
-          }
-
-          console.log('✅ Auth successful for:', user.email)
-          
-          return {
-            id: user.id,
-            email: user.email,
-            name: user.name,
-            role: user.role
-          } as any
-        } catch (error) {
-          console.error('❌ Auth error:', error)
-          return null
-        }
-      }
+    GoogleProvider({
+      clientId: process.env.GOOGLE_CLIENT_ID!,
+      clientSecret: process.env.GOOGLE_CLIENT_SECRET!,
     })
   ],
-  
-  pages: {
-    signIn: "/auth/login",
-    signOut: "/auth/login",
-    error: "/auth/error"
-  },
-  
-  session: { 
-    strategy: 'jwt' as const,
-    maxAge: 30 * 24 * 60 * 60
-  },
-  
   callbacks: {
-    async jwt({ token, user }: any) {
-      if (user) {
-        token.id = user.id
-        token.role = user.role
-        console.log('✅ JWT created for user:', user.email)
-      }
-      return token
-    },
-    
-    async session({ session, token }: any) {
-      if (token && session.user) {
-        session.user.id = token.id
-        session.user.role = token.role
-        console.log('✅ Session created for user:', session.user.email)
+    async session({ session, user }) {
+      if (session.user && user) {
+        const fullUser = await prisma.user.findUnique({
+          where: { id: user.id },
+          include: {
+            subscriptions: {
+              where: { status: 'active' },
+              orderBy: { createdAt: 'desc' }
+            },
+            store: true
+          }
+        })
+
+        if (fullUser) {
+          session.user.id = fullUser.id
+          session.user.clerkId = fullUser.clerkId
+          session.user.telefono = fullUser.telefono
+          session.user.municipio = fullUser.municipio
+          session.user.nombreNegocio = fullUser.nombreNegocio
+          session.user.nombreTienda = fullUser.nombreTienda
+          session.user.etapa = fullUser.etapa
+          session.user.sector = fullUser.sector
+          
+          const hasActiveSubscription = fullUser.subscriptions && fullUser.subscriptions.length > 0
+          session.user.hasActiveSubscription = hasActiveSubscription
+          session.user.currentPlan = hasActiveSubscription ? fullUser.subscriptions[0].plan : null
+          
+          const hasStore = fullUser.store !== null
+          session.user.hasStore = hasStore
+          session.user.storeSlug = hasStore ? fullUser.store?.slug : null
+        }
       }
       return session
     },
-    
-    async redirect({ url, baseUrl }: any) {
-      if (url.startsWith("/")) return `${baseUrl}${url}`
-      else if (new URL(url).origin === baseUrl) return url
-      return baseUrl
+    async jwt({ token, user }) {
+      if (user) {
+        token.id = user.id
+      }
+      return token
     }
   },
-  
-  events: {
-    async signIn({ user }: any) {
-      console.log('📝 User signed in:', user?.email)
-    },
-    async signOut() {
-      console.log('📝 User signed out')
-    }
+  pages: {
+    signIn: '/sign-in',
+    signOut: '/sign-out',
+    error: '/auth/error'
   },
-  
-  secret: process.env.NEXTAUTH_SECRET,
-  trustHost: true,
-  debug: process.env.NODE_ENV === "development"
-}
-
-export const { handlers, auth, signIn, signOut } = NextAuth(authConfig)
-
-// Helper functions simplificadas
-export async function getCurrentUser() {
-  try {
-    const session = await auth()
-    return session?.user || null
-  } catch (error) {
-    console.error('Error getting current user:', error)
-    return null
+  session: {
+    strategy: 'database'
   }
-}
+})
 
-export async function requireAuth() {
+export async function getAuthUser() {
   const session = await auth()
-  if (!session?.user) {
-    throw new Error('Authentication required')
+  return session?.user || null
+}
+
+export async function checkUserSubscription(userId: string) {
+  const user = await prisma.user.findUnique({
+    where: { id: userId },
+    include: {
+      subscriptions: {
+        where: { status: 'active' },
+        orderBy: { createdAt: 'desc' }
+      }
+    }
+  })
+  
+  return {
+    hasActiveSubscription: !!(user?.subscriptions && user.subscriptions.length > 0),
+    currentPlan: user?.subscriptions?.[0]?.plan || null
   }
-  return session.user
 }

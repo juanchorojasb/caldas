@@ -1,38 +1,19 @@
-import { NextRequest, NextResponse } from "next/server"
-import { signIn } from "@/lib/auth"
+import { NextRequest, NextResponse } from 'next/server'
 
 export async function POST(request: NextRequest) {
   try {
     const { email, password } = await request.json()
-    console.log('📧 Manual login attempt for:', email)
     
-    const result = await signIn("credentials", {
-      email,
-      password,
-      redirect: false
-    })
-    
-    console.log('🔍 SignIn result:', result)
-
-    if (result?.error) {
-      console.log('❌ LOGIN FAILED:', result.error)
-      return NextResponse.json(
-        { success: false, message: "Credenciales inválidas" },
-        { status: 401 }
-      )
-    }
-
-    console.log('✅ LOGIN SUCCESS - Session should be created')
-    return NextResponse.json({
-      success: true,
-      message: "Login exitoso",
-      redirect: "/vendedor"
+    return NextResponse.json({ 
+      success: true, 
+      message: 'Redirecting to sign in...',
+      redirectUrl: '/api/auth/signin'
     })
   } catch (error) {
-    console.log('❌ LOGIN ERROR:', error)
+    console.error('Manual login error:', error)
     return NextResponse.json(
-      { success: false, message: "Error interno" },
-      { status: 500 }
+      { success: false, error: 'Authentication failed' },
+      { status: 401 }
     )
   }
 }

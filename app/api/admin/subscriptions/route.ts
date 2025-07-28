@@ -1,36 +1,86 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { auth } from '@clerk/nextjs/server'
-import { db } from '@/lib/db'
+import { getAuth } from '@clerk/nextjs/server'
+import { prisma } from '@/lib/prisma'
 
-// POST - Aprobar/Rechazar pagos
-export async function POST(req: NextRequest) {
+export async function GET(request: NextRequest) {
   try {
-    const { userId } = await auth()
-    
+    const { userId } = getAuth(request)
+
     if (!userId) {
       return NextResponse.json({ error: 'No autorizado' }, { status: 401 })
     }
 
-    const { subscriptionUserId, action } = await req.json()
+    // Verificar si el usuario es admin (puedes personalizar esta lógica)
+    const user = await prisma.user.findUnique({
+      where: { clerkId: userId }
+    })
 
-    const subscription = await db.userSubscription.update({
-      where: { userId: subscriptionUserId },
+    if (!user) {
+      return NextResponse.json({ error: 'Usuario no encontrado' }, { status: 404 })
+    }
+
+    // Obtener todas las suscripciones
+    const subscriptions = await prisma.userSubscription.findMany({
+      include: {
+        user: {
+          select: {
+            id: true,
+            firstName: true,
+            lastName: true,
+            email: true,
+            nombreNegocio: true,
+            municipio: true
+          }
+        }
+      },
+      orderBy: { createdAt: 'desc' }
+    })
+
+    return NextResponse.json({ subscriptions })
+    
+  } catch (error) {
+    console.error('Error fetching subscriptions:', error)
+    return NextResponse.json(
+      { error: 'Error interno del servidor' },
+      { status: 500 }
+    )
+  }
+}
+
+export async function PATCH(request: NextRequest) {
+  try {
+    const { userId } = getAuth(request)
+
+    if (!userId) {
+      return NextResponse.json({ error: 'No autorizado' }, { status: 401 })
+    }
+
+    const { subscriptionId, status, adminNotes } = await request.json()
+
+    // Actualizar suscripción
+    const subscription = await prisma.userSubscription.update({
+      where: { id: subscriptionId },
       data: {
-        paymentStatus: action === 'approve' ? 'approved' : 'rejected',
-        approvedAt: action === 'approve' ? new Date() : null,
-        approvedBy: userId
+        status,
+        adminNotes,
+        updatedAt: new Date()
+      },
+      include: {
+        user: true
       }
     })
 
     return NextResponse.json({ 
-      success: true, 
+      success: true,
       subscription,
-      message: `Pago ${action === 'approve' ? 'aprobado' : 'rechazado'}` 
+      message: `Suscripción ${status === 'active' ? 'aprobada' : 'actualizada'} exitosamente`
     })
+    
   } catch (error) {
-    console.error('Error al actualizar suscripción:', error)
-    return NextResponse.json({ 
-      error: 'Error al actualizar suscripción' 
-    }, { status: 500 })
+    console.error('Error updating subscription:', error)
+    return NextResponse.json(
+      { error: 'Error interno del servidor' },
+      { status: 500 }
+    )
   }
 }

@@ -1,169 +1,236 @@
-'use client'
+'use client';
 
-import { useState } from 'react'
-import { useUser } from '@clerk/nextjs'
-import { Check, Star, Zap } from 'lucide-react'
+import { useUser } from '@clerk/nextjs';
+import { useRouter } from 'next/navigation';
+import { useState } from 'react';
+import { Check, Star, Zap, Users, BookOpen, TrendingUp } from 'lucide-react';
 
 const planes = [
   {
-    id: 'plan_a',
-    name: 'Plan Básico',
-    price: 20000,
-    description: 'Solo marketplace',
-    features: [
-      'Vender productos',
+    id: 'basico',
+    nombre: 'Plan Básico',
+    precio: 20000,
+    descripcion: 'Acceso al marketplace para vender tus productos',
+    caracteristicas: [
+      'Publicación de productos',
       'Perfil de vendedor',
-      'Gestión de inventario',
-      'Soporte básico'
+      'Chat con compradores',
+      'Estadísticas básicas'
     ],
-    icon: '🥉',
-    color: 'border-gray-300'
+    icono: Users,
+    color: 'bg-blue-500'
   },
   {
-    id: 'plan_b', 
-    name: 'Plan Profesional',
-    price: 50000,
-    description: 'Marketplace + academia',
-    features: [
+    id: 'completo',
+    nombre: 'Plan Completo',
+    precio: 50000,
+    descripcion: 'Marketplace + Academia de emprendimiento',
+    caracteristicas: [
       'Todo del Plan Básico',
-      'Crear cursos online',
-      'Academia personalizada',
-      'Analytics avanzados',
-      'Soporte prioritario'
+      'Acceso a Academia IA',
+      'Cursos de emprendimiento',
+      'Mentoría grupal',
+      'Herramientas avanzadas'
     ],
-    icon: '🥈',
-    color: 'border-blue-500',
+    icono: BookOpen,
+    color: 'bg-purple-500',
     popular: true
   },
   {
-    id: 'plan_c',
-    name: 'Plan Premium',
-    price: 120000, 
-    description: 'Todo incluido + publicidad',
-    features: [
-      'Todo del Plan Profesional',
-      'Publicidad en carrusel',
-      'Promoción destacada',
-      'SEO optimizado',
-      'Soporte 24/7',
-      'Consultoría mensual'
+    id: 'premium',
+    nombre: 'Plan Premium',
+    precio: 120000,
+    descripcion: 'Marketplace + Academia + Publicidad destacada',
+    caracteristicas: [
+      'Todo del Plan Completo',
+      'Publicidad destacada',
+      'Mentoría personalizada',
+      'Analíticas avanzadas',
+      'Soporte prioritario',
+      'Certificaciones'
     ],
-    icon: '🥇',
-    color: 'border-yellow-500'
+    icono: Star,
+    color: 'bg-gold-500'
+  },
+  {
+    id: 'programa',
+    nombre: 'Programa de Formación',
+    precio: 0,
+    precioOriginal: 8500000,
+    descripcion: 'Programa especial GRATUITO para el Norte de Caldas',
+    caracteristicas: [
+      '6 meses de formación integral',
+      'Academia IA especializada',
+      'Mentorías personalizadas',
+      'Tienda online incluida',
+      'Red de emprendedores',
+      'Certificación Minciencias'
+    ],
+    icono: Zap,
+    color: 'bg-gradient-to-br from-blue-600 to-green-600',
+    gratuito: true,
+    destacado: true
   }
-]
+];
 
 export default function PlanesPage() {
-  const { user } = useUser()
-  const [selectedPlan, setSelectedPlan] = useState('')
-  const [loading, setLoading] = useState(false)
+  const { user, isLoaded } = useUser();
+  const router = useRouter();
+  const [cargando, setCargando] = useState<string | null>(null);
+  const [error, setError] = useState<string | null>(null);
 
-const handleSelectPlan = async (planId: string) => {
-  setLoading(true)
-  try {
-    // Guardar suscripción en BD
-    const response = await fetch('/api/subscriptions', {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json'
-      },
-      body: JSON.stringify({
-        selectedPlan: planId,
-        email: user?.emailAddresses[0]?.emailAddress,
-        name: user?.firstName + ' ' + (user?.lastName || '')
-      })
-    })
-
-    const result = await response.json()
-    
-    if (result.success) {
-      // Redirect a página de pago
-      window.location.href = `/onboarding/pago?plan=${planId}`
-    } else {
-      alert(`Error: ${result.error}`)
-    }
-  } catch (error) {
-    console.error('Error:', error)
-    alert('Error al seleccionar plan')
-  } finally {
-    setLoading(false)
+  if (!isLoaded) {
+    return (
+      <div className="min-h-screen bg-gradient-to-br from-blue-50 to-green-50 flex items-center justify-center">
+        <div className="text-center">
+          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 mx-auto mb-4"></div>
+          <p className="text-gray-600">Cargando planes...</p>
+        </div>
+      </div>
+    );
   }
-}
+
+  const seleccionarPlan = async (planId: string) => {
+    setCargando(planId);
+    setError(null);
+    
+    try {
+      if (user) {
+        // Usar unsafeMetadata en lugar de publicMetadata para Clerk v5+
+        await user.update({
+          unsafeMetadata: {
+            ...user.unsafeMetadata,
+            plan: planId,
+            planSeleccionado: new Date().toISOString()
+          }
+        });
+
+        // Redirigir según el plan
+        if (planId === 'programa') {
+          router.push('/onboarding/programa');
+        } else {
+          router.push(`/onboarding/pago?plan=${planId}`);
+        }
+      } else {
+        throw new Error('Usuario no autenticado');
+      }
+    } catch (error) {
+      console.error('Error al seleccionar plan:', error);
+      setError('Error al seleccionar el plan. Por favor intenta de nuevo.');
+      setCargando(null);
+    }
+  };
+
   return (
-    <div className="min-h-screen bg-gray-50 py-12">
-      <div className="max-w-6xl mx-auto px-4">
+    <div className="min-h-screen bg-gradient-to-br from-blue-50 to-green-50 py-12 px-4">
+      <div className="max-w-7xl mx-auto">
         <div className="text-center mb-12">
           <h1 className="text-4xl font-bold text-gray-900 mb-4">
             ¡Bienvenido a MercadoLocal! 🎉
           </h1>
           <p className="text-xl text-gray-600 mb-2">
-            Hola <span className="font-semibold">{user?.firstName}</span>, selecciona tu plan ideal
+            Elige el plan perfecto para tu emprendimiento
           </p>
-          <p className="text-gray-500">
-            Puedes cambiar o cancelar en cualquier momento
+          <p className="text-lg text-green-600 font-semibold">
+            Norte de Caldas - Impulsando el emprendimiento local
           </p>
         </div>
 
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
-          {planes.map((plan) => (
-            <div
-              key={plan.id}
-              className={`relative bg-white rounded-2xl shadow-lg border-2 ${plan.color} ${plan.popular ? 'ring-2 ring-blue-500' : ''}`}
-            >
-              {plan.popular && (
-                <div className="absolute -top-4 left-1/2 transform -translate-x-1/2">
-                  <span className="bg-blue-500 text-white px-4 py-1 rounded-full text-sm font-semibold flex items-center gap-1">
-                    <Star className="w-4 h-4" />
-                    Más Popular
-                  </span>
+        {error && (
+          <div className="max-w-md mx-auto mb-8 p-4 bg-red-50 border border-red-200 rounded-lg">
+            <p className="text-red-700 text-center">{error}</p>
+          </div>
+        )}
+
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-8">
+          {planes.map((plan) => {
+            const IconComponent = plan.icono;
+            
+            return (
+              <div
+                key={plan.id}
+                className={`relative bg-white rounded-2xl shadow-xl overflow-hidden transition-all duration-300 hover:scale-105 hover:shadow-2xl ${
+                  plan.destacado ? 'ring-4 ring-green-400 ring-opacity-50' : ''
+                }`}
+              >
+                {plan.popular && (
+                  <div className="absolute top-0 right-0 bg-purple-500 text-white px-3 py-1 text-sm font-semibold rounded-bl-lg">
+                    POPULAR
+                  </div>
+                )}
+                
+                {plan.gratuito && (
+                  <div className="absolute top-0 right-0 bg-green-500 text-white px-3 py-1 text-sm font-semibold rounded-bl-lg">
+                    GRATUITO
+                  </div>
+                )}
+
+                <div className={`${plan.color} p-6 text-white text-center`}>
+                  <IconComponent className="w-12 h-12 mx-auto mb-4" />
+                  <h3 className="text-xl font-bold mb-2">{plan.nombre}</h3>
+                  <div className="text-3xl font-bold">
+                    {plan.gratuito ? (
+                      <div>
+                        <span className="line-through text-sm opacity-75">
+                          ${plan.precioOriginal?.toLocaleString()}
+                        </span>
+                        <div className="text-4xl">GRATIS</div>
+                      </div>
+                    ) : (
+                      `$${plan.precio.toLocaleString()}`
+                    )}
+                  </div>
                 </div>
-              )}
 
-              <div className="p-8">
-                <div className="text-center mb-6">
-                  <div className="text-4xl mb-2">{plan.icon}</div>
-                  <h3 className="text-2xl font-bold text-gray-900">{plan.name}</h3>
-                  <p className="text-gray-600 mt-2">{plan.description}</p>
+                <div className="p-6">
+                  <p className="text-gray-600 mb-6">{plan.descripcion}</p>
+                  
+                  <ul className="space-y-3 mb-8">
+                    {plan.caracteristicas.map((caracteristica, index) => (
+                      <li key={index} className="flex items-center">
+                        <Check className="w-5 h-5 text-green-500 mr-3 flex-shrink-0" />
+                        <span className="text-gray-700">{caracteristica}</span>
+                      </li>
+                    ))}
+                  </ul>
+
+                  <button
+                    onClick={() => seleccionarPlan(plan.id)}
+                    disabled={cargando === plan.id}
+                    className={`w-full py-3 px-6 rounded-lg font-semibold transition-all duration-200 ${
+                      plan.gratuito
+                        ? 'bg-gradient-to-r from-green-500 to-blue-500 hover:from-green-600 hover:to-blue-600 text-white'
+                        : plan.popular
+                        ? 'bg-purple-500 hover:bg-purple-600 text-white'
+                        : 'bg-gray-800 hover:bg-gray-900 text-white'
+                    } ${cargando === plan.id ? 'opacity-50 cursor-not-allowed' : ''}`}
+                  >
+                    {cargando === plan.id ? (
+                      <div className="flex items-center justify-center">
+                        <div className="animate-spin rounded-full h-5 w-5 border-b-2 border-white mr-2"></div>
+                        Procesando...
+                      </div>
+                    ) : plan.gratuito ? (
+                      '🎓 Aplicar al Programa'
+                    ) : (
+                      `Elegir ${plan.nombre}`
+                    )}
+                  </button>
                 </div>
-
-                <div className="text-center mb-6">
-                  <span className="text-4xl font-bold text-gray-900">
-${plan.price.toLocaleString('es-CO')}
-                  </span>
-                  <span className="text-gray-600 ml-2">/mes</span>
-                </div>
-
-                <ul className="space-y-3 mb-8">
-                  {plan.features.map((feature, index) => (
-                    <li key={index} className="flex items-center">
-                      <Check className="w-5 h-5 text-green-500 mr-3" />
-                      <span className="text-gray-700">{feature}</span>
-                    </li>
-                  ))}
-                </ul>
-
-                <button
-                  onClick={() => handleSelectPlan(plan.id)}
-                  disabled={loading}
-                  className={`w-full py-3 px-4 rounded-lg font-semibold transition-colors ${
-                    plan.popular
-                      ? 'bg-blue-600 text-white hover:bg-blue-700'
-                      : 'bg-gray-900 text-white hover:bg-gray-800'
-                  } disabled:opacity-50`}
-                >
-                  {loading ? 'Procesando...' : `Seleccionar ${plan.name}`}
-                </button>
               </div>
-            </div>
-          ))}
+            );
+          })}
         </div>
 
         <div className="text-center mt-12">
-          <p className="text-gray-500">
-            ¿Tienes preguntas? <a href="https://wa.me/573001234567" className="text-blue-600 hover:underline">Contáctanos por WhatsApp</a>
+          <p className="text-gray-600">
+            ¿Necesitas ayuda para elegir? 
+            <a href="https://wa.me/573001234567" className="text-green-600 hover:underline ml-1">
+              Contacta con nosotros por WhatsApp
+            </a>
           </p>
         </div>
       </div>
     </div>
-  )
+  );
 }
