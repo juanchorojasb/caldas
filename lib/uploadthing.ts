@@ -1,11 +1,9 @@
-// lib/uploadthing.ts - SIMPLIFICADO
 import {
   generateUploadButton,
   generateUploadDropzone,
-} from "@uploadthing/react"
+} from "@uploadthing/react";
 
-// Tipo genérico para FileRouter
-type FileRouter = any
+import type { OurFileRouter } from "@/app/api/uploadthing/core";
 
-export const UploadButton = generateUploadButton<FileRouter>()
-export const UploadDropzone = generateUploadDropzone<FileRouter>()
+export const UploadButton = generateUploadButton<OurFileRouter>();
+export const UploadDropzone = generateUploadDropzone<OurFileRouter>();
