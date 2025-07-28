@@ -1,342 +1,261 @@
-'use client'
+'use client';
 
-import { useEffect, useState } from 'react'
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
-import { Badge } from '@/components/ui/badge'
-import { Button } from '@/components/ui/button'
-import {
-  BookOpen,
-  Brain,
-  Trophy,
-  TrendingUp,
-  Target,
-  Calendar,
-  Zap,
-  ChevronRight,
-  User
-} from 'lucide-react'
-import Link from 'next/link'
-import { ProgressRing } from '@/components/dashboard/ProgressRing'
-import { ActivityFeed } from '@/components/dashboard/ActivityFeed'
-import { LearningPath } from '@/components/dashboard/LearningPath'
-
-// Importar StreakCounter si está en archivo separado
-// import { StreakCounter } from '@/components/dashboard/StreakCounter'
-
-interface DashboardStats {
-  user: {
-    firstName: string
-    lastName: string
-    municipality: string
-  }
-  courses: {
-    enrolled: number
-    completed: number
-    totalProgress: number
-    recentCourses: any[]
-  }
-  ai: {
-    generationsToday: number
-    totalGenerations: number
-    favoriteTools: string[]
-  }
-  achievements: {
-    total: number
-    recent: string[]
-  }
-  streak: number
-}
+import { useUser } from '@clerk/nextjs';
+import { UserButton } from '@clerk/nextjs';
+import { useState, useEffect } from 'react';
+import { 
+  BookOpen, Users, Trophy, Star, ArrowRight, 
+  Calendar, MessageCircle, TrendingUp, Target,
+  MapPin, Clock, Award
+} from 'lucide-react';
 
 export default function DashboardPage() {
-  const [stats, setStats] = useState<DashboardStats | null>(null)
-  const [loading, setLoading] = useState(true)
+  const { user, isLoaded } = useUser();
+  const [planUsuario, setPlanUsuario] = useState<string | null>(null);
 
   useEffect(() => {
-    // Simular carga de datos hasta tener API
-    const mockStats: DashboardStats = {
-      user: {
-        firstName: 'Juan',
-        lastName: 'Pérez',
-        municipality: 'Manizales'
-      },
-      courses: {
-        enrolled: 4,
-        completed: 2,
-        totalProgress: 68,
-        recentCourses: []
-      },
-      ai: {
-        generationsToday: 3,
-        totalGenerations: 45,
-        favoriteTools: ['Generador de Ideas', 'Marketing Strategy']
-      },
-      achievements: {
-        total: 5,
-        recent: ['Primer Curso', 'Explorador IA']
-      },
-      streak: 7
+    if (isLoaded && user) {
+      const plan = user.unsafeMetadata?.plan as string;
+      setPlanUsuario(plan);
     }
+  }, [isLoaded, user]);
 
-    setTimeout(() => {
-      setStats(mockStats)
-      setLoading(false)
-    }, 1000)
-  }, [])
-
-  if (loading) {
+  if (!isLoaded) {
     return (
-      <div className="p-6">
-        <div className="animate-pulse space-y-6">
-          <div className="h-8 bg-gray-200 rounded w-64"></div>
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
-            {[...Array(4)].map((_, i) => (
-              <div key={i} className="h-32 bg-gray-200 rounded-lg"></div>
-            ))}
-          </div>
-        </div>
+      <div className="min-h-screen bg-gray-50 flex items-center justify-center">
+        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600"></div>
       </div>
-    )
+    );
   }
 
-  const getGreeting = () => {
-    const hour = new Date().getHours()
-    if (hour < 12) return 'Buenos días'
-    if (hour < 18) return 'Buenas tardes'
-    return 'Buenas noches'
-  }
+  const isProgramaGratuito = planUsuario === 'programa';
 
   return (
-    <div className="p-6 space-y-6">
+    <div className="min-h-screen bg-gray-50">
       {/* Header */}
-      <div className="flex items-center justify-between">
-        <div>
-          <h1 className="text-2xl font-bold text-gray-900">
-            {getGreeting()}, {stats?.user?.firstName}! 👋
-          </h1>
-          <p className="text-gray-600">
-            Continuemos transformando el emprendimiento en {stats?.user?.municipality}
-          </p>
+      <header className="bg-white shadow-sm border-b">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+          <div className="flex justify-between items-center py-4">
+            <div className="flex items-center">
+              <h1 className="text-2xl font-bold text-gray-900">MercadoLocal</h1>
+              <span className="ml-3 text-sm bg-blue-100 text-blue-800 px-2 py-1 rounded-full">
+                {isProgramaGratuito ? 'Programa de Formación' : 'Plan Premium'}
+              </span>
+            </div>
+            <div className="flex items-center space-x-4">
+              <span className="text-sm text-gray-600">
+                ¡Hola, {user?.firstName || 'Emprendedor'}!
+              </span>
+              <UserButton afterSignOutUrl="/" />
+            </div>
+          </div>
         </div>
-        <div className="flex items-center gap-3">
-          <Badge variant="outline" className="flex items-center gap-1">
-            <Zap className="w-4 h-4" />
-            {stats?.streak || 0} días en racha
-          </Badge>
-          <Link href="/profile">
-            <Button variant="outline" size="sm">
-              <User className="w-4 h-4 mr-2" />
-              Perfil
-            </Button>
-          </Link>
-        </div>
-      </div>
+      </header>
 
-      {/* Stats Cards */}
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
-        {/* Progreso de Cursos */}
-        <Card>
-          <CardContent className="p-6">
-            <div className="flex items-center justify-between mb-4">
-              <div className="flex items-center gap-2">
-                <BookOpen className="w-5 h-5 text-blue-500" />
-                <span className="font-medium">Cursos</span>
-              </div>
-              <Badge>{stats?.courses?.enrolled || 0} activos</Badge>
-            </div>
-            <div className="text-center">
-              <ProgressRing
-                progress={stats?.courses?.totalProgress || 0}
-                size={80}
-                strokeWidth={6}
-                color="#3B82F6"
-              />
-            </div>
-            <div className="mt-4 text-center">
-              <p className="text-sm text-gray-600">
-                {stats?.courses?.completed || 0} de {stats?.courses?.enrolled || 0} completados
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+        {isProgramaGratuito ? (
+          /* Dashboard para Programa de Formación */
+          <>
+            <div className="mb-8">
+              <h2 className="text-3xl font-bold text-gray-900 mb-2">
+                🎓 Tu Programa de Formación
+              </h2>
+              <p className="text-gray-600">
+                Bienvenido al programa gratuito del Norte de Caldas
               </p>
             </div>
-          </CardContent>
-        </Card>
 
-        {/* Actividad IA */}
-        <Card>
-          <CardContent className="p-6">
-            <div className="flex items-center justify-between mb-4">
-              <div className="flex items-center gap-2">
-                <Brain className="w-5 h-5 text-purple-500" />
-                <span className="font-medium">IA Hoy</span>
-              </div>
-              <Badge variant="secondary">{stats?.ai?.generationsToday || 0}</Badge>
-            </div>
-            <div className="space-y-2">
-              <div className="text-3xl font-bold text-purple-600">
-                {stats?.ai?.totalGenerations || 0}
-              </div>
-              <p className="text-sm text-gray-600">generaciones totales</p>
-              <div className="pt-2">
-                <p className="text-xs text-gray-500">Herramientas favoritas:</p>
-                <p className="text-xs font-medium truncate">
-                  {stats?.ai?.favoriteTools?.join(', ') || 'Ninguna aún'}
-                </p>
-              </div>
-            </div>
-          </CardContent>
-        </Card>
-
-        {/* Logros */}
-        <Card>
-          <CardContent className="p-6">
-            <div className="flex items-center justify-between mb-4">
-              <div className="flex items-center gap-2">
-                <Trophy className="w-5 h-5 text-yellow-500" />
-                <span className="font-medium">Logros</span>
-              </div>
-              <Badge variant="outline">{stats?.achievements?.total || 0}</Badge>
-            </div>
-            <div className="space-y-2">
-              <div className="text-3xl font-bold text-yellow-600">
-                {stats?.achievements?.total || 0}
-              </div>
-              <p className="text-sm text-gray-600">desbloqueados</p>
-              {(stats?.achievements?.recent?.length || 0) > 0 && (
-                <div className="pt-2">
-                  <p className="text-xs text-gray-500">Recientes:</p>
-                  {stats?.achievements?.recent?.map((achievement, i) => (
-                    <Badge key={i} variant="outline" className="text-xs mr-1 mb-1">
-                      {achievement}
-                    </Badge>
-                  ))}
-                </div>
-              )}
-            </div>
-          </CardContent>
-        </Card>
-
-        {/* Estadísticas Generales */}
-        <Card>
-          <CardContent className="p-6">
-            <div className="flex items-center justify-between mb-4">
-              <div className="flex items-center gap-2">
-                <TrendingUp className="w-5 h-5 text-green-500" />
-                <span className="font-medium">Progreso</span>
-              </div>
-              <Badge variant="default">En alza</Badge>
-            </div>
-            <div className="space-y-3">
-              <div className="flex justify-between items-center">
-                <span className="text-sm text-gray-600">Esta semana</span>
-                <span className="font-semibold">+25%</span>
-              </div>
-              <div className="flex justify-between items-center">
-                <span className="text-sm text-gray-600">Actividad</span>
-                <span className="font-semibold text-green-600">Alta</span>
-              </div>
-              <div className="flex justify-between items-center">
-                <span className="text-sm text-gray-600">Racha actual</span>
-                <span className="font-semibold text-orange-600">{stats?.streak || 0}d</span>
-              </div>
-            </div>
-          </CardContent>
-        </Card>
-      </div>
-
-      {/* Main Content Grid */}
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-        {/* Ruta de Aprendizaje */}
-        <div className="lg:col-span-2">
-          <LearningPath maxCourses={3} />
-        </div>
-
-        {/* Sidebar */}
-        <div className="space-y-6">
-          {/* Contador de Racha */}
-          <div>
-            {/* Aquí iría el StreakCounter si está en archivo separado */}
-            {/* <StreakCounter currentStreak={stats?.streak} longestStreak={12} streakData={[]} /> */}
-
-            {/* O versión inline simplificada */}
-            <Card>
-              <CardHeader>
-                <CardTitle className="flex items-center gap-2">
-                  <Zap className="w-5 h-5 text-orange-500" />
-                  Racha Diaria
-                </CardTitle>
-              </CardHeader>
-              <CardContent>
-                <div className="text-center mb-4">
-                  <div className="text-4xl font-bold text-orange-500 mb-1">
-                    {stats?.streak || 0}
-                    <span className="text-lg ml-1">días</span>
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
+              <div className="bg-white p-6 rounded-lg shadow-sm">
+                <div className="flex items-center">
+                  <BookOpen className="w-8 h-8 text-blue-600" />
+                  <div className="ml-4">
+                    <p className="text-sm font-medium text-gray-600">Progreso</p>
+                    <p className="text-2xl font-semibold text-gray-900">15%</p>
                   </div>
-                  <p className="text-sm text-gray-600">
-                    ¡Excelente constancia!
-                  </p>
                 </div>
+              </div>
+              
+              <div className="bg-white p-6 rounded-lg shadow-sm">
+                <div className="flex items-center">
+                  <Calendar className="w-8 h-8 text-green-600" />
+                  <div className="ml-4">
+                    <p className="text-sm font-medium text-gray-600">Próxima Sesión</p>
+                    <p className="text-2xl font-semibold text-gray-900">Lun 3</p>
+                  </div>
+                </div>
+              </div>
+              
+              <div className="bg-white p-6 rounded-lg shadow-sm">
+                <div className="flex items-center">
+                  <Users className="w-8 h-8 text-purple-600" />
+                  <div className="ml-4">
+                    <p className="text-sm font-medium text-gray-600">Compañeros</p>
+                    <p className="text-2xl font-semibold text-gray-900">48</p>
+                  </div>
+                </div>
+              </div>
+              
+              <div className="bg-white p-6 rounded-lg shadow-sm">
+                <div className="flex items-center">
+                  <Trophy className="w-8 h-8 text-yellow-600" />
+                  <div className="ml-4">
+                    <p className="text-sm font-medium text-gray-600">Logros</p>
+                    <p className="text-2xl font-semibold text-gray-900">3</p>
+                  </div>
+                </div>
+              </div>
+            </div>
 
-                {/* Calendario semanal simplificado */}
-                <div className="flex justify-center gap-1 mb-4">
-                  {['L', 'M', 'X', 'J', 'V', 'S', 'D'].map((day, i) => (
-                    <div key={day} className="text-center">
-                      <div className="text-xs text-gray-500 mb-1">{day}</div>
-                      <div className={`w-6 h-6 rounded flex items-center justify-center text-xs ${
-                        i < 6 ? 'bg-green-100 text-green-700' : 'bg-gray-100 text-gray-400'
-                      }`}>
-                        {i < 6 ? '✓' : '○'}
-                      </div>
+            <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
+              <div className="bg-white rounded-lg shadow-sm p-6">
+                <h3 className="text-lg font-semibold text-gray-900 mb-4">
+                  📚 Tu Ruta de Aprendizaje
+                </h3>
+                <div className="space-y-4">
+                  <div className="flex items-center p-3 bg-green-50 rounded-lg">
+                    <div className="w-8 h-8 bg-green-500 rounded-full flex items-center justify-center text-white text-sm font-semibold">
+                      ✓
                     </div>
-                  ))}
+                    <div className="ml-3">
+                      <p className="font-medium text-gray-900">Módulo 1: Fundamentos IA</p>
+                      <p className="text-sm text-gray-600">Completado</p>
+                    </div>
+                  </div>
+                  
+                  <div className="flex items-center p-3 bg-blue-50 rounded-lg">
+                    <div className="w-8 h-8 bg-blue-500 rounded-full flex items-center justify-center text-white text-sm font-semibold">
+                      2
+                    </div>
+                    <div className="ml-3">
+                      <p className="font-medium text-gray-900">Módulo 2: Marketing Digital</p>
+                      <p className="text-sm text-gray-600">En progreso</p>
+                    </div>
+                  </div>
+                  
+                  <div className="flex items-center p-3 bg-gray-50 rounded-lg">
+                    <div className="w-8 h-8 bg-gray-400 rounded-full flex items-center justify-center text-white text-sm font-semibold">
+                      3
+                    </div>
+                    <div className="ml-3">
+                      <p className="font-medium text-gray-900">Módulo 3: E-commerce</p>
+                      <p className="text-sm text-gray-600">Próximamente</p>
+                    </div>
+                  </div>
                 </div>
+              </div>
 
-                <div className="text-center">
-                  <Button size="sm" className="w-full">
-                    <Target className="w-4 h-4 mr-1" />
-                    ¡Mantén la racha!
-                  </Button>
+              <div className="bg-white rounded-lg shadow-sm p-6">
+                <h3 className="text-lg font-semibold text-gray-900 mb-4">
+                  🎯 Próximas Actividades
+                </h3>
+                <div className="space-y-3">
+                  <div className="border-l-4 border-blue-500 pl-4">
+                    <p className="font-medium text-gray-900">Mentoría Grupal</p>
+                    <p className="text-sm text-gray-600">Lunes 3 Feb - 2:00 PM</p>
+                  </div>
+                  <div className="border-l-4 border-green-500 pl-4">
+                    <p className="font-medium text-gray-900">Taller IA Práctica</p>
+                    <p className="text-sm text-gray-600">Miércoles 5 Feb - 10:00 AM</p>
+                  </div>
+                  <div className="border-l-4 border-purple-500 pl-4">
+                    <p className="font-medium text-gray-900">Networking Regional</p>
+                    <p className="text-sm text-gray-600">Viernes 7 Feb - 4:00 PM</p>
+                  </div>
                 </div>
-              </CardContent>
-            </Card>
-          </div>
+              </div>
+            </div>
+          </>
+        ) : (
+          /* Dashboard para otros planes */
+          <>
+            <div className="mb-8">
+              <h2 className="text-3xl font-bold text-gray-900 mb-2">
+                🚀 Tu Marketplace
+              </h2>
+              <p className="text-gray-600">
+                Panel de control de tu negocio en MercadoLocal
+              </p>
+            </div>
 
-          {/* Feed de Actividad */}
-          <ActivityFeed limit={5} />
-        </div>
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
+              <div className="bg-white p-6 rounded-lg shadow-sm">
+                <div className="flex items-center">
+                  <TrendingUp className="w-8 h-8 text-green-600" />
+                  <div className="ml-4">
+                    <p className="text-sm font-medium text-gray-600">Ventas Este Mes</p>
+                    <p className="text-2xl font-semibold text-gray-900">$850K</p>
+                  </div>
+                </div>
+              </div>
+              
+              <div className="bg-white p-6 rounded-lg shadow-sm">
+                <div className="flex items-center">
+                  <Target className="w-8 h-8 text-blue-600" />
+                  <div className="ml-4">
+                    <p className="text-sm font-medium text-gray-600">Productos</p>
+                    <p className="text-2xl font-semibold text-gray-900">12</p>
+                  </div>
+                </div>
+              </div>
+              
+              <div className="bg-white p-6 rounded-lg shadow-sm">
+                <div className="flex items-center">
+                  <Users className="w-8 h-8 text-purple-600" />
+                  <div className="ml-4">
+                    <p className="text-sm font-medium text-gray-600">Clientes</p>
+                    <p className="text-2xl font-semibold text-gray-900">246</p>
+                  </div>
+                </div>
+              </div>
+              
+              <div className="bg-white p-6 rounded-lg shadow-sm">
+                <div className="flex items-center">
+                  <Star className="w-8 h-8 text-yellow-600" />
+                  <div className="ml-4">
+                    <p className="text-sm font-medium text-gray-600">Rating</p>
+                    <p className="text-2xl font-semibold text-gray-900">4.8</p>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            <div className="bg-white rounded-lg shadow-sm p-6">
+              <h3 className="text-lg font-semibold text-gray-900 mb-4">
+                🛍️ Acciones Rápidas
+              </h3>
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                <button className="flex items-center p-4 border border-gray-200 rounded-lg hover:bg-gray-50 transition-colors">
+                  <Target className="w-6 h-6 text-blue-600 mr-3" />
+                  <div className="text-left">
+                    <p className="font-medium text-gray-900">Agregar Producto</p>
+                    <p className="text-sm text-gray-600">Sube un nuevo producto</p>
+                  </div>
+                  <ArrowRight className="w-5 h-5 text-gray-400 ml-auto" />
+                </button>
+                
+                <button className="flex items-center p-4 border border-gray-200 rounded-lg hover:bg-gray-50 transition-colors">
+                  <MessageCircle className="w-6 h-6 text-green-600 mr-3" />
+                  <div className="text-left">
+                    <p className="font-medium text-gray-900">Mensajes</p>
+                    <p className="text-sm text-gray-600">5 mensajes nuevos</p>
+                  </div>
+                  <ArrowRight className="w-5 h-5 text-gray-400 ml-auto" />
+                </button>
+                
+                <button className="flex items-center p-4 border border-gray-200 rounded-lg hover:bg-gray-50 transition-colors">
+                  <TrendingUp className="w-6 h-6 text-purple-600 mr-3" />
+                  <div className="text-left">
+                    <p className="font-medium text-gray-900">Estadísticas</p>
+                    <p className="text-sm text-gray-600">Ver analíticas</p>
+                  </div>
+                  <ArrowRight className="w-5 h-5 text-gray-400 ml-auto" />
+                </button>
+              </div>
+            </div>
+          </>
+        )}
       </div>
-
-      {/* Accesos Rápidos */}
-      <Card>
-        <CardHeader>
-          <CardTitle>Accesos Rápidos</CardTitle>
-        </CardHeader>
-        <CardContent>
-          <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-            <Link href="/courses">
-              <Button variant="outline" className="w-full h-20 flex flex-col gap-2">
-                <BookOpen className="w-6 h-6" />
-                <span className="text-sm">Cursos</span>
-              </Button>
-            </Link>
-            <Link href="/ai-tools">
-              <Button variant="outline" className="w-full h-20 flex flex-col gap-2">
-                <Brain className="w-6 h-6" />
-                <span className="text-sm">Herramientas IA</span>
-              </Button>
-            </Link>
-            <Link href="/community">
-              <Button variant="outline" className="w-full h-20 flex flex-col gap-2">
-                <Target className="w-6 h-6" />
-                <span className="text-sm">Comunidad</span>
-              </Button>
-            </Link>
-            <Link href="/profile">
-              <Button variant="outline" className="w-full h-20 flex flex-col gap-2">
-                <User className="w-6 h-6" />
-                <span className="text-sm">Mi Perfil</span>
-              </Button>
-            </Link>
-          </div>
-        </CardContent>
-      </Card>
     </div>
-  )
+  );
 }
