@@ -1,64 +1,21 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { auth } from '@clerk/nextjs/server'
+import { getAuth } from '@clerk/nextjs/server'
 import { prisma } from '@/lib/prisma'
-
-export async function GET() {
-  try {
-    const { userId } = await auth()
-    
-    if (!userId) {
-      return NextResponse.json({ error: 'No autorizado' }, { status: 401 })
-    }
-
-    // Buscar usuario
-    const user = await prisma.user.findUnique({
-      where: { clerkId: userId }
-    })
-
-    if (!user) {
-      return NextResponse.json({ error: 'Usuario no encontrado' }, { status: 404 })
-    }
-
-    // Obtener suscripciones del usuario
-    const subscriptions = await prisma.userSubscription.findMany({
-      where: { userId: user.id },
-      orderBy: { createdAt: 'desc' }
-    })
-
-    return NextResponse.json(subscriptions)
-  } catch (error) {
-    console.error('Error fetching subscriptions:', error)
-    return NextResponse.json(
-      { error: 'Error interno del servidor' },
-      { status: 500 }
-    )
-  }
-}
 
 export async function POST(request: NextRequest) {
   try {
-    const { userId } = await auth()
-    
+    const { userId } = getAuth(request)
+
     if (!userId) {
       return NextResponse.json({ error: 'No autorizado' }, { status: 401 })
     }
 
-    const body = await request.json()
-    const { plan, amount, paymentMethod, paymentProof } = body
-
-    // Buscar usuario
-    const user = await prisma.user.findUnique({
-      where: { clerkId: userId }
-    })
-
-    if (!user) {
-      return NextResponse.json({ error: 'Usuario no encontrado' }, { status: 404 })
-    }
+    const { plan, amount, paymentMethod, paymentProof } = await request.json()
 
     // Crear suscripción
     const subscription = await prisma.userSubscription.create({
       data: {
-        userId: user.id,
+        userId: userId,
         plan,
         amount,
         paymentMethod,
@@ -67,11 +24,12 @@ export async function POST(request: NextRequest) {
       }
     })
 
-    return NextResponse.json({
+    return NextResponse.json({ 
       success: true,
       subscription,
       message: 'Suscripción creada exitosamente'
     })
+    
   } catch (error) {
     console.error('Error creating subscription:', error)
     return NextResponse.json(
@@ -81,39 +39,24 @@ export async function POST(request: NextRequest) {
   }
 }
 
-export async function PATCH(request: NextRequest) {
+export async function GET(request: NextRequest) {
   try {
-    const { userId } = await auth()
-    
+    const { userId } = getAuth(request)
+
     if (!userId) {
       return NextResponse.json({ error: 'No autorizado' }, { status: 401 })
     }
 
-    const body = await request.json()
-    const { subscriptionId, status } = body
-
-    // Buscar usuario
-    const user = await prisma.user.findUnique({
-      where: { clerkId: userId }
+    // Obtener suscripciones del usuario
+    const subscriptions = await prisma.userSubscription.findMany({
+      where: { userId },
+      orderBy: { createdAt: 'desc' }
     })
 
-    if (!user) {
-      return NextResponse.json({ error: 'Usuario no encontrado' }, { status: 404 })
-    }
-
-    // Actualizar suscripción
-    const subscription = await prisma.userSubscription.update({
-      where: { id: subscriptionId },
-      data: { status }
-    })
-
-    return NextResponse.json({
-      success: true,
-      subscription,
-      message: 'Suscripción actualizada'
-    })
+    return NextResponse.json({ subscriptions })
+    
   } catch (error) {
-    console.error('Error updating subscription:', error)
+    console.error('Error fetching user subscriptions:', error)
     return NextResponse.json(
       { error: 'Error interno del servidor' },
       { status: 500 }

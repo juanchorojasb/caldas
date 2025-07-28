@@ -1,17 +1,16 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { auth } from '@clerk/nextjs/server'
+import { getAuth } from '@clerk/nextjs/server'
 import { prisma } from '@/lib/prisma'
-import { imagesToString } from '@/lib/image-utils'
 
-export async function GET() {
+export async function GET(request: NextRequest) {
   try {
-    const { userId } = await auth()
-    
+    const { userId } = getAuth(request)
+
     if (!userId) {
       return NextResponse.json({ error: 'No autorizado' }, { status: 401 })
     }
 
-    // Buscar usuario
+    // Obtener usuario para verificar que existe
     const user = await prisma.user.findUnique({
       where: { clerkId: userId }
     })
@@ -20,18 +19,34 @@ export async function GET() {
       return NextResponse.json({ error: 'Usuario no encontrado' }, { status: 404 })
     }
 
-    // Obtener productos del usuario
-    const products = await prisma.product.findMany({
-      where: {
-        userId: user.id,
-        isActive: true
+    // Obtener productos del vendedor
+    const productos = await prisma.product.findMany({
+      where: { 
+        userId: user.id 
       },
-      orderBy: { createdAt: 'desc' }
+      orderBy: { createdAt: 'desc' },
+      include: {
+        store: {
+          select: {
+            name: true,
+            slug: true
+          }
+        }
+      }
     })
 
-    return NextResponse.json(products)
+    return NextResponse.json({ 
+      productos,
+      total: productos.length,
+      vendedor: {
+        id: user.id,
+        nombre: user.firstName + ' ' + user.lastName,
+        negocio: user.nombreNegocio
+      }
+    })
+    
   } catch (error) {
-    console.error('Error fetching products:', error)
+    console.error('Error fetching productos:', error)
     return NextResponse.json(
       { error: 'Error interno del servidor' },
       { status: 500 }
@@ -41,53 +56,49 @@ export async function GET() {
 
 export async function POST(request: NextRequest) {
   try {
-    const { userId } = await auth()
-    
+    const { userId } = getAuth(request)
+
     if (!userId) {
       return NextResponse.json({ error: 'No autorizado' }, { status: 401 })
     }
 
-    // Buscar usuario
+    // Obtener datos del producto
+    const data = await request.json()
+    const { name, description, price, category, images, isActive, isFeatured } = data
+
+    // Obtener usuario
     const user = await prisma.user.findUnique({
-      where: { clerkId: userId }
+      where: { clerkId: userId },
+      include: { store: true }
     })
 
     if (!user) {
       return NextResponse.json({ error: 'Usuario no encontrado' }, { status: 404 })
     }
 
-    const body = await request.json()
-    const { name, description, price, category, images } = body
-
-    // Validar datos requeridos
-    if (!name || !price) {
-      return NextResponse.json(
-        { error: 'Nombre y precio son requeridos' },
-        { status: 400 }
-      )
-    }
-
-    // Crear producto con schema actual
-    const product = await prisma.product.create({
+    // Crear producto
+    const producto = await prisma.product.create({
       data: {
         name,
         description,
         price: parseFloat(price),
-        category, // Usar category directamente (string)
-        images: imagesToString(images || []), // Convertir array a JSON string
-        userId: user.id, // Corregido: usar userId en lugar de vendorId
-        isActive: true
+        category,
+        images: JSON.stringify(images || []),
+        isActive: isActive ?? true,
+        isFeatured: isFeatured ?? false,
+        userId: user.id,
+        storeId: user.store?.id || null
       }
     })
 
-    return NextResponse.json({
+    return NextResponse.json({ 
       success: true,
-      product,
+      producto,
       message: 'Producto creado exitosamente'
     })
-
+    
   } catch (error) {
-    console.error('Error creating product:', error)
+    console.error('Error creating producto:', error)
     return NextResponse.json(
       { error: 'Error interno del servidor' },
       { status: 500 }
@@ -95,14 +106,18 @@ export async function POST(request: NextRequest) {
   }
 }
 
-export async function PATCH(request: NextRequest) {
+export async function PUT(request: NextRequest) {
   try {
-    const { userId } = await auth()
-    
+    const { userId } = getAuth(request)
+
     if (!userId) {
       return NextResponse.json({ error: 'No autorizado' }, { status: 401 })
     }
 
+    const data = await request.json()
+    const { id, name, description, price, category, images, isActive, isFeatured } = data
+
+    // Verificar que el producto pertenece al usuario
     const user = await prisma.user.findUnique({
       where: { clerkId: userId }
     })
@@ -111,44 +126,40 @@ export async function PATCH(request: NextRequest) {
       return NextResponse.json({ error: 'Usuario no encontrado' }, { status: 404 })
     }
 
-    const body = await request.json()
-    const { productId, name, description, price, category, images } = body
-
-    // Verificar que el producto pertenece al usuario
-    const existingProduct = await prisma.product.findFirst({
-      where: {
-        id: productId,
-        userId: user.id
+    const producto = await prisma.product.findFirst({
+      where: { 
+        id,
+        userId: user.id 
       }
     })
 
-    if (!existingProduct) {
-      return NextResponse.json(
-        { error: 'Producto no encontrado o no tienes permisos' },
-        { status: 404 }
-      )
+    if (!producto) {
+      return NextResponse.json({ error: 'Producto no encontrado' }, { status: 404 })
     }
 
     // Actualizar producto
-    const product = await prisma.product.update({
-      where: { id: productId },
+    const productoActualizado = await prisma.product.update({
+      where: { id },
       data: {
         name,
         description,
         price: parseFloat(price),
         category,
-        images: imagesToString(images || [])
+        images: JSON.stringify(images || []),
+        isActive,
+        isFeatured,
+        updatedAt: new Date()
       }
     })
 
-    return NextResponse.json({
+    return NextResponse.json({ 
       success: true,
-      product,
+      producto: productoActualizado,
       message: 'Producto actualizado exitosamente'
     })
-
+    
   } catch (error) {
-    console.error('Error updating product:', error)
+    console.error('Error updating producto:', error)
     return NextResponse.json(
       { error: 'Error interno del servidor' },
       { status: 500 }
@@ -158,12 +169,20 @@ export async function PATCH(request: NextRequest) {
 
 export async function DELETE(request: NextRequest) {
   try {
-    const { userId } = await auth()
-    
+    const { userId } = getAuth(request)
+
     if (!userId) {
       return NextResponse.json({ error: 'No autorizado' }, { status: 401 })
     }
 
+    const { searchParams } = new URL(request.url)
+    const id = searchParams.get('id')
+
+    if (!id) {
+      return NextResponse.json({ error: 'ID de producto requerido' }, { status: 400 })
+    }
+
+    // Verificar que el producto pertenece al usuario
     const user = await prisma.user.findUnique({
       where: { clerkId: userId }
     })
@@ -172,44 +191,29 @@ export async function DELETE(request: NextRequest) {
       return NextResponse.json({ error: 'Usuario no encontrado' }, { status: 404 })
     }
 
-    const { searchParams } = new URL(request.url)
-    const productId = searchParams.get('id')
-
-    if (!productId) {
-      return NextResponse.json(
-        { error: 'ID de producto requerido' },
-        { status: 400 }
-      )
-    }
-
-    // Verificar que el producto pertenece al usuario
-    const existingProduct = await prisma.product.findFirst({
-      where: {
-        id: productId,
-        userId: user.id
+    const producto = await prisma.product.findFirst({
+      where: { 
+        id,
+        userId: user.id 
       }
     })
 
-    if (!existingProduct) {
-      return NextResponse.json(
-        { error: 'Producto no encontrado o no tienes permisos' },
-        { status: 404 }
-      )
+    if (!producto) {
+      return NextResponse.json({ error: 'Producto no encontrado' }, { status: 404 })
     }
 
-    // Soft delete (marcar como inactivo)
-    await prisma.product.update({
-      where: { id: productId },
-      data: { isActive: false }
+    // Eliminar producto
+    await prisma.product.delete({
+      where: { id }
     })
 
-    return NextResponse.json({
+    return NextResponse.json({ 
       success: true,
       message: 'Producto eliminado exitosamente'
     })
-
+    
   } catch (error) {
-    console.error('Error deleting product:', error)
+    console.error('Error deleting producto:', error)
     return NextResponse.json(
       { error: 'Error interno del servidor' },
       { status: 500 }

@@ -131,3 +131,6 @@ model UserSubscription {
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 }
+
+// Agregar a modelo User:
+// onboardingCompleted Boolean @default(false)

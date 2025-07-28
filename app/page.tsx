@@ -1,7 +1,7 @@
 import { PublicNavbar } from '@/components/layout/public-navbar'
 import { PublicFooter } from '@/components/layout/public-footer'
 import { Button } from '@/components/ui/button'
-import { ArrowRight, Users, Store, TrendingUp, MapPin } from 'lucide-react'
+import { ArrowRight, Users, Store, TrendingUp, MapPin, BookOpen, Target, Award } from 'lucide-react'
 import Link from 'next/link'
 
 export default function HomePage() {
@@ -31,23 +31,18 @@ export default function HomePage() {
                 Vende online, aprende con IA y conecta con clientes reales.
               </p>
               
-              {/* CTA Buttons - Más prominentes en móvil */}
-              <div className="flex flex-col sm:flex-row gap-4 sm:gap-4 justify-center lg:justify-start">
+              {/* CTA Principal - Solo uno, más prominente */}
+              <div className="flex justify-center lg:justify-start mb-8 sm:mb-12">
                 <Link href="/sign-up">
-                  <Button size="lg" className="w-full sm:w-auto bg-blue-600 hover:bg-blue-700 text-white px-8 py-3 text-lg font-semibold shadow-lg">
-                    Empezar Gratis
-                    <ArrowRight className="ml-2 h-5 w-5" />
-                  </Button>
-                </Link>
-                <Link href="/tiendas">
-                  <Button variant="outline" size="lg" className="w-full sm:w-auto border-2 border-blue-600 text-blue-600 hover:bg-blue-50 px-8 py-3 text-lg font-semibold">
-                    Ver Tiendas
+                  <Button size="lg" className="w-full sm:w-auto bg-blue-600 hover:bg-blue-700 text-white px-8 py-4 text-xl font-semibold shadow-lg">
+                    Únete al Programa
+                    <ArrowRight className="ml-2 h-6 w-6" />
                   </Button>
                 </Link>
               </div>
               
               {/* Stats - Compactos en móvil */}
-              <div className="mt-8 sm:mt-12 grid grid-cols-3 gap-4 text-center">
+              <div className="grid grid-cols-3 gap-4 text-center">
                 <div>
                   <div className="text-2xl sm:text-3xl font-bold text-blue-600">150+</div>
                   <div className="text-xs sm:text-sm text-gray-600">Emprendedores</div>
@@ -73,6 +68,53 @@ export default function HomePage() {
                 </div>
               </div>
             </div>
+          </div>
+        </div>
+      </section>
+      
+      {/* Banner del Programa Norte de Caldas */}
+      <section className="py-12 sm:py-16 bg-gradient-to-r from-green-600 via-blue-600 to-purple-600">
+        <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8">
+          <div className="text-center text-white">
+            <div className="flex items-center justify-center mb-6">
+              <Award className="h-8 w-8 mr-3" />
+              <h2 className="text-2xl sm:text-3xl lg:text-4xl font-bold">
+                Programa de Formación Norte de Caldas
+              </h2>
+            </div>
+            
+            <p className="text-lg sm:text-xl text-blue-100 mb-8 max-w-4xl mx-auto leading-relaxed">
+              Un programa integral de 6 meses diseñado específicamente para emprendedores 
+              del Norte de Caldas. Aprende marketing digital, ventas online y haz crecer 
+              tu negocio con herramientas de inteligencia artificial.
+            </p>
+            
+            <div className="grid md:grid-cols-3 gap-6 mb-8">
+              <div className="bg-white/10 backdrop-blur-sm rounded-lg p-6">
+                <BookOpen className="h-10 w-10 mx-auto mb-4 text-yellow-300" />
+                <h3 className="text-xl font-semibold mb-2">Academia IA</h3>
+                <p className="text-blue-100">Cursos especializados con inteligencia artificial</p>
+              </div>
+              
+              <div className="bg-white/10 backdrop-blur-sm rounded-lg p-6">
+                <Target className="h-10 w-10 mx-auto mb-4 text-yellow-300" />
+                <h3 className="text-xl font-semibold mb-2">Mentorías</h3>
+                <p className="text-blue-100">Acompañamiento personalizado para tu negocio</p>
+              </div>
+              
+              <div className="bg-white/10 backdrop-blur-sm rounded-lg p-6">
+                <Users className="h-10 w-10 mx-auto mb-4 text-yellow-300" />
+                <h3 className="text-xl font-semibold mb-2">Comunidad</h3>
+                <p className="text-blue-100">Red de emprendedores de toda la región</p>
+              </div>
+            </div>
+            
+            <Link href="/caldas">
+              <Button size="lg" className="bg-white text-blue-600 hover:bg-gray-100 px-8 py-3 text-lg font-semibold shadow-lg">
+                Conocer el Programa
+                <ArrowRight className="ml-2 h-5 w-5" />
+              </Button>
+            </Link>
           </div>
         </div>
       </section>
@@ -112,18 +154,18 @@ export default function HomePage() {
         </div>
       </section>
       
-      {/* CTA Final - Más visible en móvil */}
-      <section className="py-12 sm:py-16 bg-gradient-to-r from-blue-600 to-green-600">
+      {/* CTA Final - Enfocado en el programa */}
+      <section className="py-12 sm:py-16 bg-gray-900">
         <div className="max-w-4xl mx-auto text-center px-4 sm:px-6 lg:px-8">
           <h2 className="text-2xl sm:text-3xl lg:text-4xl font-bold text-white mb-4 sm:mb-6">
-            ¿Listo para empezar a vender?
+            ¿Listo para transformar tu negocio?
           </h2>
-          <p className="text-lg sm:text-xl text-blue-100 mb-6 sm:mb-8">
-            Únete a los emprendedores que ya están creciendo con MercadoLocal
+          <p className="text-lg sm:text-xl text-gray-300 mb-6 sm:mb-8">
+            Únete al programa de formación que está revolucionando el emprendimiento en el Norte de Caldas
           </p>
           <Link href="/sign-up">
-            <Button size="lg" className="bg-white text-blue-600 hover:bg-gray-100 px-8 py-3 text-lg font-semibold shadow-lg">
-              Crear mi tienda gratis
+            <Button size="lg" className="bg-blue-600 hover:bg-blue-700 text-white px-8 py-3 text-lg font-semibold shadow-lg">
+              Aplicar al Programa
               <ArrowRight className="ml-2 h-5 w-5" />
             </Button>
           </Link>
