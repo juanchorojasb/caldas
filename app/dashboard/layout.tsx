@@ -28,14 +28,14 @@ export default function DashboardLayout({
   const pathname = usePathname()
   const { user } = useUser()
 
-  const navigation = [
-    { name: 'Dashboard', href: '/dashboard', icon: Home },
-    { name: 'Mis Cursos', href: '/dashboard/courses', icon: GraduationCap },
-    { name: 'Asistente IA', href: '/herramientas', icon: Brain },
-    { name: 'Perfil', href: '/dashboard/profile', icon: User },
-    { name: 'Configuración', href: '/dashboard/settings', icon: Settings },
-  ]
-
+const navigation = [
+  { name: 'Dashboard', href: '/dashboard', icon: Home },
+  { name: 'Mis Cursos', href: '/dashboard/courses', icon: GraduationCap },
+  { name: 'Mis Productos', href: '/dashboard/productos', icon: Coffee },
+  { name: 'Asistente IA', href: '/herramientas', icon: Brain },
+  { name: 'Perfil', href: '/dashboard/profile', icon: User },
+  { name: 'Configuración', href: '/dashboard/settings', icon: Settings },
+]
   return (
     <div className="flex h-screen bg-gray-100">
       {/* Sidebar */}

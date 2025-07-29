@@ -15,27 +15,46 @@ export default function NuevoProducto() {
   const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
     setLoading(true);
-    
+
     try {
       const formData = new FormData(e.currentTarget);
       
-      // Agregar imágenes como JSON
-      formData.append('images', JSON.stringify(images));
-      
+      // Crear objeto JSON en lugar de FormData
+      const productData = {
+        name: formData.get('name'),
+        description: formData.get('description'),
+        price: formData.get('price'),
+        category: formData.get('category'),
+        images: images, // Array directo
+        isActive: true,
+        isFeatured: false
+      };
+
+      console.log("🔍 Frontend - Enviando datos:", productData);
+
       const response = await fetch('/api/vendedor/productos', {
         method: 'POST',
-        body: formData,
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(productData), // ← Enviar JSON
       });
 
+      console.log("🔍 Frontend - Response status:", response.status);
+
       if (response.ok) {
+        const result = await response.json();
+        console.log("✅ Frontend - Producto creado:", result);
         alert('¡Producto creado exitosamente!');
         setImages([]);
         e.currentTarget.reset();
       } else {
-        const error = await response.text();
-        alert('Error creando producto: ' + error);
+        const errorText = await response.text();
+        console.error("❌ Frontend - Error response:", errorText);
+        alert('Error creando producto: ' + errorText);
       }
     } catch (error) {
+      console.error("❌ Frontend - Error catch:", error);
       alert('Error: ' + error);
     } finally {
       setLoading(false);
@@ -54,29 +73,29 @@ export default function NuevoProducto() {
 
         <div>
           <label className="block text-sm font-medium mb-2">Descripción</label>
-          <Textarea 
-            name="description" 
-            required 
+          <Textarea
+            name="description"
+            required
             rows={4}
-            placeholder="Describe tu producto, ingredientes, proceso de elaboración..." 
+            placeholder="Describe tu producto, ingredientes, proceso de elaboración..."
           />
         </div>
 
         <div>
           <label className="block text-sm font-medium mb-2">Precio (COP)</label>
-          <Input 
-            name="price" 
-            type="number" 
-            step="0.01" 
-            required 
+          <Input
+            name="price"
+            type="number"
+            step="0.01"
+            required
             placeholder="25000"
           />
         </div>
 
         <div>
           <label className="block text-sm font-medium mb-2">Categoría</label>
-          <select 
-            name="category" 
+          <select
+            name="category"
             required
             className="flex h-10 w-full rounded-md border border-gray-300 bg-white px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
           >
@@ -104,8 +123,8 @@ export default function NuevoProducto() {
           )}
         </div>
 
-        <Button 
-          type="submit" 
+        <Button
+          type="submit"
           disabled={loading || images.length === 0}
           className="w-full"
         >

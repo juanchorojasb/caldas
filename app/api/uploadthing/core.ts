@@ -4,38 +4,46 @@ import { auth } from "@clerk/nextjs/server";
 const f = createUploadthing();
 
 export const ourFileRouter = {
-  productImageUploader: f({ 
-    image: { 
-      maxFileSize: "4MB", 
-      maxFileCount: 5 
-    } 
+  productImageUploader: f({
+    image: {
+      maxFileSize: "4MB",
+      maxFileCount: 5
+    }
   })
-    .middleware(async () => {
+.middleware(async ({ req }) => {
       try {
-        const { userId } = auth();
+        const { userId } = await auth();
         
         if (!userId) {
-          throw new Error("Usuario no autenticado");
+          console.log("❌ No hay usuario autenticado");
+          throw new Error("No autenticado");
         }
-
-        console.log("UploadThing middleware - userId:", userId);
+        
+        console.log("✅ Usuario autenticado:", userId.substring(0, 8) + "...");
         return { userId };
       } catch (error) {
-        console.error("Error en middleware UploadThing:", error);
-        throw new Error("Error de autenticación");
+console.error("❌ Auth error:", error instanceof Error ? error.message : String(error));
+        throw new Error("Autenticación fallida");
       }
     })
-    .onUploadComplete(async ({ metadata, file }) => {
-      console.log("Upload completo para usuario:", metadata.userId);
-      console.log("Archivo URL:", file.url);
-      
-      // Aquí podrías guardar en base de datos si necesitas
-      // await db.image.create({ data: { url: file.url, userId: metadata.userId } })
-      
-      return { 
-        uploadedBy: metadata.userId,
-        url: file.url 
-      };
+.onUploadComplete(async ({ metadata, file }) => {
+      try {
+        const userId = metadata?.userId || 'unknown';
+        const fileUrl = file?.url || 'no-url';
+        
+        // Logs más seguros
+        if (userId !== 'unknown') {
+          console.log(`✅ Upload success - User: ${userId}`);
+        }
+        
+        return {
+          uploadedBy: userId,
+          url: fileUrl
+        };
+      } catch (error) {
+        console.error("❌ Callback error:", error);
+        return { uploadedBy: 'error', url: 'error' };
+      }
     }),
 } satisfies FileRouter;
 

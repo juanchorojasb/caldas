@@ -1,0 +1,232 @@
+import { readdir, readFile } from 'fs/promises'
+import { join } from 'path'
+import Link from 'next/link'
+import Image from 'next/image'
+import { Store, MapPin, Package, Eye } from 'lucide-react'
+
+interface TiendaInfo {
+  userId: string
+  nombre: string
+  productosCount: number
+  imagenDestacada: string | null
+  categorias: string[]
+  ultimaActualizacion: string
+}
+
+async function getTiendas(): Promise<TiendaInfo[]> {
+  try {
+    const PRODUCTOS_DIR = join(process.cwd(), 'public', 'data', 'productos')
+    
+    // Leer todos los archivos de productos
+    const archivos = await readdir(PRODUCTOS_DIR)
+    const archivosTiendas = archivos.filter(file => file.endsWith('.json'))
+    
+    const tiendas: TiendaInfo[] = []
+    
+    for (const archivo of archivosTiendas) {
+      try {
+        const userId = archivo.replace('.json', '')
+        const filePath = join(PRODUCTOS_DIR, archivo)
+        const data = await readFile(filePath, 'utf8')
+        const productos = JSON.parse(data)
+        
+        // Filtrar productos activos
+        const productosActivos = productos.filter((p: any) => p.isActive !== false)
+        
+        if (productosActivos.length > 0) {
+          // Obtener categorías únicas
+          const categorias = [...new Set(productosActivos.map((p: any) => p.category).filter(Boolean))]
+          
+          // Obtener imagen destacada (primera imagen del primer producto)
+          const imagenDestacada = productosActivos[0]?.images?.[0] || null
+          
+          // Obtener fecha más reciente
+          const fechas = productosActivos.map((p: any) => new Date(p.updatedAt || p.createdAt))
+          
+          tiendas.push({
+            userId,
+            nombre: `Tienda ${userId.split('_')[1]?.substring(0, 8) || 'Emprendedor'}`,
+            productosCount: productosActivos.length,
+            imagenDestacada,
+            categorias,
+            ultimaActualizacion
+          })
+        }
+      } catch (error) {
+        // Skip archivos con errores
+        continue
+      }
+    }
+    
+    // Ordenar por última actualización (más recientes primero)
+    return tiendas.sort((a, b) => 
+      new Date(b.ultimaActualizacion).getTime() - new Date(a.ultimaActualizacion).getTime()
+    )
+    
+  } catch (error) {
+    console.error('Error obteniendo tiendas:', error)
+    return []
+  }
+}
+
+export default async function TiendasPage() {
+  const tiendas = await getTiendas()
+  
+  return (
+    <div className="min-h-screen bg-gray-50">
+      {/* Header */}
+      <div className="bg-white shadow-sm border-b">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+          <div className="text-center">
+            <h1 className="text-4xl font-bold text-gray-900 mb-4">
+              🏪 Tiendas del Norte de Caldas
+            </h1>
+            <p className="text-xl text-gray-600 max-w-3xl mx-auto">
+              Descubre productos únicos de emprendedores locales de Neira, Aranzazu, Salamina, Pácora y Aguadas
+            </p>
+            
+            {/* Stats */}
+            <div className="mt-8 grid grid-cols-1 md:grid-cols-3 gap-6 max-w-2xl mx-auto">
+              <div className="bg-blue-50 p-4 rounded-lg">
+                <div className="text-2xl font-bold text-blue-600">{tiendas.length}</div>
+                <div className="text-sm text-blue-800">Tiendas Activas</div>
+              </div>
+              
+              <div className="bg-green-50 p-4 rounded-lg">
+                <div className="text-2xl font-bold text-green-600">
+                  {tiendas.reduce((sum, tienda) => sum + tienda.productosCount, 0)}
+                </div>
+                <div className="text-sm text-green-800">Productos Disponibles</div>
+              </div>
+              
+              <div className="bg-purple-50 p-4 rounded-lg">
+                <div className="text-2xl font-bold text-purple-600">
+                  {new Set(tiendas.flatMap(t => t.categorias)).size}
+                </div>
+                <div className="text-sm text-purple-800">Categorías</div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      {/* Tiendas Grid */}
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12">
+        {tiendas.length === 0 ? (
+          <div className="text-center py-12">
+            <Store className="w-24 h-24 mx-auto text-gray-400 mb-4" />
+            <h3 className="text-xl font-semibold text-gray-900 mb-2">
+              Aún no hay tiendas disponibles
+            </h3>
+            <p className="text-gray-600">
+              ¡Sé el primero en crear tu tienda y mostrar tus productos!
+            </p>
+          </div>
+        ) : (
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
+            {tiendas.map((tienda) => (
+              <Link 
+                key={tienda.userId} 
+                href={`/tienda/${tienda.userId}`}
+                className="group"
+              >
+                <div className="bg-white rounded-lg shadow-md border overflow-hidden hover:shadow-lg transition-shadow duration-200">
+                  {/* Imagen */}
+                  <div className="aspect-square relative bg-gray-100">
+                    {tienda.imagenDestacada ? (
+                      <Image
+                        src={tienda.imagenDestacada}
+                        alt={tienda.nombre}
+                        fill
+                        className="object-cover group-hover:scale-105 transition-transform duration-200"
+                      />
+                    ) : (
+                      <div className="flex items-center justify-center h-full">
+                        <Store className="w-16 h-16 text-gray-400" />
+                      </div>
+                    )}
+                    
+                    {/* Overlay con info rápida */}
+                    <div className="absolute inset-0 bg-black bg-opacity-0 group-hover:bg-opacity-20 transition-all duration-200 flex items-center justify-center">
+                      <div className="opacity-0 group-hover:opacity-100 transition-opacity duration-200">
+                        <div className="bg-white rounded-full p-3">
+                          <Eye className="w-6 h-6 text-gray-700" />
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* Contenido */}
+                  <div className="p-4">
+                    <h3 className="font-semibold text-lg text-gray-900 mb-2 group-hover:text-blue-600 transition-colors">
+                      {tienda.nombre}
+                    </h3>
+                    
+                    <div className="flex items-center text-gray-600 text-sm mb-2">
+                      <MapPin className="w-4 h-4 mr-1" />
+                      Norte de Caldas
+                    </div>
+                    
+                    <div className="flex items-center text-gray-600 text-sm mb-3">
+                      <Package className="w-4 h-4 mr-1" />
+                      {tienda.productosCount} producto{tienda.productosCount !== 1 ? 's' : ''}
+                    </div>
+                    
+                    {/* Categorías */}
+                    {tienda.categorias.length > 0 && (
+                      <div className="flex flex-wrap gap-1 mb-3">
+                        {tienda.categorias.slice(0, 3).map((categoria, index) => (
+                          <span 
+                            key={index}
+                            className="px-2 py-1 bg-gray-100 text-gray-700 text-xs rounded-full capitalize"
+                          >
+                            {categoria}
+                          </span>
+                        ))}
+                        {tienda.categorias.length > 3 && (
+                          <span className="px-2 py-1 bg-gray-100 text-gray-700 text-xs rounded-full">
+                            +{tienda.categorias.length - 3}
+                          </span>
+                        )}
+                      </div>
+                    )}
+                    
+                    {/* Última actualización */}
+                    <div className="text-xs text-gray-500">
+                      Actualizado: {new Date(tienda.ultimaActualizacion).toLocaleDateString('es-CO')}
+                    </div>
+                  </div>
+                </div>
+              </Link>
+            ))}
+          </div>
+        )}
+      </div>
+
+      {/* Call to action */}
+      <div className="bg-blue-600 text-white py-12">
+        <div className="max-w-4xl mx-auto text-center px-4">
+          <h2 className="text-3xl font-bold mb-4">
+            ¿Eres emprendedor del Norte de Caldas?
+          </h2>
+          <p className="text-xl mb-8">
+            Únete a nuestra plataforma y muestra tus productos a toda la región
+          </p>
+          <Link 
+            href="/sign-up"
+            className="inline-block bg-white text-blue-600 px-8 py-3 rounded-lg font-semibold hover:bg-gray-50 transition-colors"
+          >
+            Crear mi tienda gratis
+          </Link>
+        </div>
+      </div>
+    </div>
+  )
+}
+
+// Metadata para SEO
+export const metadata = {
+  title: 'Tiendas del Norte de Caldas - MercadoLocal',
+  description: 'Descubre productos únicos de emprendedores locales de Neira, Aranzazu, Salamina, Pácora y Aguadas. Marketplace del Norte de Caldas.',
+  keywords: 'tiendas, Norte de Caldas, emprendedores, productos locales, marketplace, Neira, Aranzazu, Salamina, Pácora, Aguadas',
+}

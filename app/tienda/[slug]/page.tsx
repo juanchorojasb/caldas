@@ -1,9 +1,9 @@
 import { notFound } from 'next/navigation'
-import { prisma } from '@/lib/prisma'
+import { readFile } from 'fs/promises'
+import { join } from 'path'
 import { StoreHeader } from '@/components/store/StoreHeader'
 import { StoreProducts } from '@/components/store/StoreProducts'
 import { StoreContact } from '@/components/store/StoreContact'
-import { stringToImages } from '@/lib/image-utils'
 
 interface StorePageProps {
   params: Promise<{
@@ -11,58 +11,85 @@ interface StorePageProps {
   }>
 }
 
-// Definir tipo para producto procesado con imágenes convertidas
+// Definir tipo para producto
 interface ProcessedProduct {
   id: string
   name: string
   description?: string | null
   price: number
-  images: string[] // Array después del procesamiento
+  images: string[]
   category?: string | null
   isFeatured?: boolean
   createdAt: Date
 }
 
-async function getStore(slug: string) {
+// Definir tipo para tienda
+interface Store {
+  id: string
+  name: string
+  slug: string
+  description?: string | null
+  banner?: string | null
+  city?: string | null
+  isActive: boolean
+  user: {
+    firstName: string | null
+    lastName: string | null
+    email: string | null
+  }
+  products: ProcessedProduct[]
+}
+
+async function getStore(userId: string): Promise<Store | null> {
   try {
-    const store = await prisma.store.findUnique({
-      where: { 
-        slug,
-        isActive: true 
-      },
-      include: {
-        user: {
-          select: {
-            firstName: true,
-            lastName: true,
-            email: true
-          }
-        },
-        products: {
-          where: { isActive: true },
-          orderBy: { createdAt: 'desc' }
-        }
-      }
-    })
+    const PRODUCTOS_DIR = join(process.cwd(), 'public', 'data', 'productos')
+    const userFile = join(PRODUCTOS_DIR, `${userId}.json`)
     
-    if (!store) return null
-    
-    // Procesar imágenes de productos y convertir tipos correctamente
-    const processedProducts: ProcessedProduct[] = store.products.map(product => ({
+    // Leer productos del usuario
+    let productos = []
+    try {
+      const data = await readFile(userFile, 'utf8')
+      productos = JSON.parse(data)
+    } catch (error) {
+      // Usuario no tiene productos o archivo no existe
+      productos = []
+    }
+
+    // Filtrar solo productos activos
+    const productosActivos = productos.filter((p: any) => p.isActive !== false)
+
+    // Procesar productos para la tienda
+    const processedProducts: ProcessedProduct[] = productosActivos.map((product: any) => ({
       id: product.id,
       name: product.name,
       description: product.description,
-      price: Number(product.price), // Convertir Decimal a number
-      images: stringToImages(product.images), // Convertir string a array
+      price: Number(product.price),
+      images: Array.isArray(product.images) ? product.images : [],
       category: product.category,
-      isFeatured: product.isFeatured,
-      createdAt: product.createdAt
+      isFeatured: product.isFeatured || false,
+      createdAt: new Date(product.createdAt || Date.now())
     }))
-    
-    return {
-      ...store,
+
+    // Crear datos de tienda simulados
+    // En una implementación futura, esto podría venir de un archivo de perfil de usuario
+    const store: Store = {
+      id: userId,
+      name: `Tienda de ${userId.split('_')[1]?.substring(0, 8) || 'Usuario'}`, // Nombre simplificado
+      slug: userId,
+      description: `Productos únicos del Norte de Caldas`,
+      banner: productosActivos.length > 0 ? productosActivos[0].images?.[0] : null,
+      city: 'Norte de Caldas',
+      isActive: true,
+      user: {
+        firstName: 'Emprendedor',
+        lastName: 'Norte de Caldas',
+        email: null
+      },
       products: processedProducts
     }
+
+    return store
+
   } catch (error) {
     console.error('Error fetching store:', error)
     return null
@@ -72,20 +99,20 @@ async function getStore(slug: string) {
 export default async function StorePage({ params }: StorePageProps) {
   // En Next.js 15, params es una Promise
   const { slug } = await params
+  
+  // El slug es el userId
   const store = await getStore(slug)
-
-  if (!store) {
+  
+  if (!store || store.products.length === 0) {
     notFound()
   }
 
   return (
     <div className="min-h-screen bg-gray-50">
       <StoreHeader store={store} />
-      
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
         <StoreProducts products={store.products} />
       </div>
-      
       <StoreContact store={store} />
     </div>
   )
@@ -105,10 +132,10 @@ export async function generateMetadata({ params }: StorePageProps) {
   return {
     title: `${store.name} - MercadoLocal Caldas`,
     description: store.description || `Conoce los productos de ${store.name} en MercadoLocal Caldas`,
-    keywords: `${store.name}, tienda, productos, Caldas, ${store.city}, emprendedores`,
+    keywords: `${store.name}, tienda, productos, Caldas, Norte de Caldas, emprendedores`,
     openGraph: {
       title: `${store.name} - MercadoLocal Caldas`,
-      description: store.description || `Productos únicos de ${store.name}`,
+      description: store.description || `Productos únicos del Norte de Caldas`,
       images: store.banner ? [store.banner] : [],
     }
   }

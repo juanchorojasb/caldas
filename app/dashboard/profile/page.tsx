@@ -38,16 +38,16 @@ export default function ProfilePage() {
     setFormData({
       firstName: user.firstName || '',
       lastName: user.lastName || '',
-      phone: user.unsafeMetadata?.phone || '',
-      businessName: user.unsafeMetadata?.businessName || '',
-      businessType: user.unsafeMetadata?.businessType || '',
-      businessDescription: user.unsafeMetadata?.businessDescription || '',
-      municipality: user.unsafeMetadata?.municipality || '',
-      businessStage: user.unsafeMetadata?.businessStage || '',
-      website: user.unsafeMetadata?.website || '',
-      instagram: user.unsafeMetadata?.instagram || '',
-      facebook: user.unsafeMetadata?.facebook || '',
-      whatsapp: user.unsafeMetadata?.whatsapp || ''
+phone: String(user.unsafeMetadata?.phone || ''),
+businessName: String(user.unsafeMetadata?.businessName || ''),
+businessType: String(user.unsafeMetadata?.businessType || ''),
+businessDescription: String(user.unsafeMetadata?.businessDescription || ''),
+municipality: String(user.unsafeMetadata?.municipality || ''),
+businessStage: String(user.unsafeMetadata?.businessStage || ''),
+website: String(user.unsafeMetadata?.website || ''),
+instagram: String(user.unsafeMetadata?.instagram || ''),
+facebook: String(user.unsafeMetadata?.facebook || ''),
+whatsapp: String(user.unsafeMetadata?.whatsapp || '')
     })
     
     setLoading(false)
@@ -132,7 +132,8 @@ export default function ProfilePage() {
                   <span className="font-medium">Email:</span> {user.emailAddresses[0]?.emailAddress}
                 </div>
                 <div>
-                  <span className="font-medium">Plan:</span> {user.unsafeMetadata?.plan || 'No seleccionado'}
+                  <span className="font-medium">Plan:</span> 
+{String(user.unsafeMetadata?.plan || 'No seleccionado')}
                 </div>
                 <div>
                   <span className="font-medium">Miembro desde:</span> {new Date(user.createdAt!).toLocaleDateString()}

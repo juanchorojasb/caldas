@@ -49,7 +49,7 @@ export default function SettingsPage() {
     }
 
     // Cargar configuraciones desde Clerk metadata
-    const userSettings = user.unsafeMetadata?.settings || {}
+const userSettings = (user.unsafeMetadata?.settings as Record<string, any>) || {}
     setSettings({
       ...settings,
       ...userSettings
@@ -63,7 +63,7 @@ export default function SettingsPage() {
     try {
       await user?.update({
         unsafeMetadata: {
-          ...user.unsafeMetadata,
+...(user.unsafeMetadata as Record<string, any>),
           settings: settings
         }
       })
@@ -308,8 +308,8 @@ export default function SettingsPage() {
                   </div>
                   <div>
                     <span className="font-medium text-gray-700">Plan:</span>
-                    <p className="text-gray-900">{user.unsafeMetadata?.plan || 'No seleccionado'}</p>
-                  </div>
+
+<p className="text-gray-900">{String(user.unsafeMetadata?.plan || 'No seleccionado')}</p>                  </div>
                   <div>
                     <span className="font-medium text-gray-700">Miembro desde:</span>
                     <p className="text-gray-900">{new Date(user.createdAt!).toLocaleDateString()}</p>

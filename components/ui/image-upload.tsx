@@ -1,8 +1,7 @@
 "use client";
 
-import { useState } from "react";
-import { UploadDropzone } from "@/lib/uploadthing";
-import { X, Upload, Image as ImageIcon } from "lucide-react";
+import { useState, useRef } from 'react';
+import { X, Upload, Image as ImageIcon } from 'lucide-react';
 
 interface ImageUploadProps {
   value: string[];
@@ -10,17 +9,65 @@ interface ImageUploadProps {
   maxFiles?: number;
 }
 
-export function ImageUpload({ value, onChange, maxFiles = 5 }: ImageUploadProps) {
+export function ImageUpload({ value = [], onChange, maxFiles = 5 }: ImageUploadProps) {
   const [isUploading, setIsUploading] = useState(false);
+  const [uploadProgress, setUploadProgress] = useState(0);
+  const fileInputRef = useRef<HTMLInputElement>(null);
 
-  const handleUploadComplete = (files: { url: string }[]) => {
-    const newUrls = files.map(file => file.url);
-    onChange([...value, ...newUrls]);
-    setIsUploading(false);
+  const handleFileSelect = async (files: FileList | null) => {
+    if (!files || files.length === 0) return;
+
+    // Verificar límite de archivos
+    if (value.length + files.length > maxFiles) {
+      alert(`Máximo ${maxFiles} imágenes permitidas`);
+      return;
+    }
+
+    setIsUploading(true);
+    setUploadProgress(0);
+
+    try {
+      const formData = new FormData();
+      
+      Array.from(files).forEach((file) => {
+        formData.append('files', file);
+      });
+
+      const response = await fetch('/api/upload', {
+        method: 'POST',
+        body: formData,
+      });
+
+      if (!response.ok) {
+        const errorData = await response.json();
+        throw new Error(errorData.error || 'Error subiendo archivos');
+      }
+
+      const data = await response.json();
+      
+      if (data.success) {
+        const newUrls = data.files.map((file: any) => file.url);
+        onChange([...value, ...newUrls]);
+        setUploadProgress(100);
+        
+        // Reset input
+        if (fileInputRef.current) {
+          fileInputRef.current.value = '';
+        }
+      }
+
+    } catch (error) {
+      console.error('Error uploading:', error);
+      alert(error instanceof Error ? error.message : 'Error subiendo imágenes');
+    } finally {
+      setIsUploading(false);
+      setTimeout(() => setUploadProgress(0), 1000);
+    }
   };
 
-  const handleRemove = (indexToRemove: number) => {
-    onChange(value.filter((_, index) => index !== indexToRemove));
+  const removeImage = (indexToRemove: number) => {
+    const newImages = value.filter((_, index) => index !== indexToRemove);
+    onChange(newImages);
   };
 
   const canUploadMore = value.length < maxFiles;
@@ -39,7 +86,7 @@ export function ImageUpload({ value, onChange, maxFiles = 5 }: ImageUploadProps)
               />
               <button
                 type="button"
-                onClick={() => handleRemove(index)}
+                onClick={() => removeImage(index)}
                 className="absolute top-2 right-2 bg-red-500 text-white rounded-full p-1 opacity-0 group-hover:opacity-100 transition-opacity"
               >
                 <X className="w-4 h-4" />
@@ -52,36 +99,60 @@ export function ImageUpload({ value, onChange, maxFiles = 5 }: ImageUploadProps)
       {/* Uploader */}
       {canUploadMore && (
         <div className="border-2 border-dashed border-gray-300 rounded-lg p-6">
-          {isUploading ? (
-            <div className="text-center">
-              <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600 mx-auto mb-2"></div>
-              <p className="text-sm text-gray-600">Subiendo imagen...</p>
+          <input
+            ref={fileInputRef}
+            type="file"
+            multiple
+            accept="image/*"
+            onChange={(e) => handleFileSelect(e.target.files)}
+            disabled={isUploading}
+            className="hidden"
+            id="image-upload"
+          />
+          
+          <label 
+            htmlFor="image-upload" 
+            className={`cursor-pointer block ${isUploading ? 'cursor-not-allowed' : ''}`}
+          >
+            <div className="space-y-2 text-center">
+              <div className="mx-auto w-12 h-12 text-gray-400">
+                <Upload className="w-full h-full" />
+              </div>
+              
+              <div>
+                <p className="text-sm font-medium text-gray-600">
+                  {isUploading ? 'Subiendo imágenes...' : 'Selecciona imágenes'}
+                </p>
+                <p className="text-xs text-gray-500">
+                  PNG, JPG, WEBP (máx. 4MB cada una)
+                </p>
+                <p className="text-xs text-gray-400">
+                  {value.length}/{maxFiles} imágenes
+                </p>
+              </div>
+              
+              {!isUploading && (
+                <div className="mt-2">
+                  <span className="inline-flex items-center px-3 py-2 border border-gray-300 text-sm leading-4 font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500">
+                    <ImageIcon className="w-4 h-4 mr-2" />
+                    Elegir Archivos
+                  </span>
+                </div>
+              )}
             </div>
-          ) : (
-            <UploadDropzone
-              endpoint="productImageUploader"
-              onClientUploadComplete={handleUploadComplete}
-              onUploadBegin={() => setIsUploading(true)}
-              onUploadError={(error) => {
-                console.error("Error upload:", error);
-                setIsUploading(false);
-                alert("Error subiendo imagen: " + error.message);
-              }}
-              appearance={{
-                button: "bg-blue-600 hover:bg-blue-700",
-                allowedContent: "text-gray-600",
-                label: "text-blue-600 hover:text-blue-700"
-              }}
-              content={{
-                button: ({ ready, isUploading }) => {
-                  if (!ready) return "Preparando...";
-                  if (isUploading) return "Subiendo...";
-                  return `Subir imagen (${value.length}/${maxFiles})`;
-                },
-                allowedContent: "Imágenes hasta 4MB (PNG, JPG, WEBP)",
-                label: "Arrastra imágenes aquí o haz click para seleccionar"
-              }}
-            />
+          </label>
+
+          {/* Progress Bar */}
+          {isUploading && (
+            <div className="mt-4">
+              <div className="w-full bg-gray-200 rounded-full h-2">
+                <div 
+                  className="bg-blue-600 h-2 rounded-full transition-all duration-300"
+                  style={{ width: `${uploadProgress}%` }}
+                ></div>
+              </div>
+              <p className="text-xs text-gray-500 mt-1">{uploadProgress}%</p>
+            </div>
           )}
         </div>
       )}
